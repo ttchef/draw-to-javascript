@@ -6,6 +6,12 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "ui.h"
 
@@ -19,9 +25,10 @@ enum uiMode {
 typedef struct Context {
     int32_t new_image_width;
     int32_t new_image_height;
+    enum uiMode mode;
 } Context;
 
-void new_image_menu(Context* ctx) {
+void new_image_menu(bool* stay_open, Context* ctx) {
     int32_t menu_width = window_width * 0.5f;
     int32_t menu_height = window_height * 0.5f;
     int32_t menu_start_x = window_width * 0.5f - menu_width * 0.5f;
@@ -61,7 +68,7 @@ void new_image_menu(Context* ctx) {
     bounds.x = menu_start_x + menu_width * 0.33f - bounds.width * 0.5f;
     bounds.y += menu_height * 0.2f;
     if (GuiButton(bounds, "Close")) {
-
+        *stay_open = false;
     }
 
     bounds.x += menu_width * 0.33f;
@@ -71,7 +78,7 @@ void new_image_menu(Context* ctx) {
     }
 }
 
-void draw_ui(enum uiMode* mode, Context* ctx) {
+void draw_ui(Context* ctx) {
     uiInfo ui_info = {
         .start_x = window_width * 0.8f,
         .start_y = 0,
@@ -85,7 +92,7 @@ void draw_ui(enum uiMode* mode, Context* ctx) {
     
     uiBegin(&ui_info);
 
-    switch (*mode) {
+    switch (ctx->mode) {
         case UI_MODE_FILE_SELECTION:
             static bool image_menu = false;
             if (uiButton(NULL, "New Image")) {
@@ -93,7 +100,7 @@ void draw_ui(enum uiMode* mode, Context* ctx) {
             }
             uiButton(NULL, "Open Image");
             uiButton(NULL, "Open Javascript");
-            if (image_menu) new_image_menu(ctx);
+            if (image_menu) new_image_menu(&image_menu, ctx);
             break;
     };
 
@@ -105,8 +112,8 @@ int main() {
     InitWindow(window_width, window_height, "Draw to javascirpt");
 
     Context ctx = {0};
+    ctx.mode = UI_MODE_FILE_SELECTION;
 
-    enum uiMode mode = UI_MODE_FILE_SELECTION;
     Color clear_color = BLACK;
 
     while (!WindowShouldClose()) {
@@ -116,7 +123,7 @@ int main() {
         BeginDrawing();
         ClearBackground(clear_color);
 
-        draw_ui(&mode, &ctx);
+        draw_ui(&ctx);
 
         EndDrawing();
     }
