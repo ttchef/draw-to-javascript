@@ -28,9 +28,7 @@ enum uiMode {
 typedef struct Context {
     int32_t new_image_width;
     int32_t new_image_height;
-    int32_t new_image_channels;
     uint8_t* image_data;
-    bool loaded;
     Texture2D loaded_tex;
     float loaded_ratio;
     enum uiMode mode;
@@ -53,7 +51,7 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     DrawText(text, menu_start_x + menu_width * 0.5f - text_width * 0.5f, menu_start_y + menu_height * 0.1f, 35, RAYWHITE);
 
     Rectangle bounds = {
-        .x = menu_start_x + menu_width * 0.25f,
+        .x = menu_start_x + menu_width * 0.33f,
         .y = menu_start_y + menu_height * 0.4f,
         .width = menu_width * 0.1f,
         .height = bounds.width,
@@ -66,18 +64,11 @@ void new_image_menu(bool* stay_open, Context* ctx) {
         new_image_width_edit_mode = !new_image_width_edit_mode;
     }
 
-    bounds.x += menu_width * 0.25f;
+    bounds.x += menu_width * 0.33f;
 
     static bool new_image_height_edit_mode = false;
     if (GuiValueBox(bounds, "Height", &ctx->new_image_height, 1, 4000, new_image_height_edit_mode)) {
         new_image_height_edit_mode = !new_image_height_edit_mode;
-    }
-    
-    bounds.x += menu_width * 0.25f;
-
-    static bool new_image_channels_edit_mode = false;
-    if (GuiValueBox(bounds, "Channels", &ctx->new_image_channels, 1, 4, new_image_channels_edit_mode)) {
-        new_image_channels_edit_mode = !new_image_channels_edit_mode;
     }
 
     bounds.width = menu_width * 0.25f;
@@ -90,13 +81,20 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     bounds.x += menu_width * 0.33f;
 
     if (GuiButton(bounds, "Create")) {
-        ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * ctx->new_image_channels);
+        ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * 4);
         if (!ctx->image_data) {
             fprintf(stderr, "Failed to create new Image\n");
             exit(1);
         };
         ctx->mode = UI_MODE_IMAGE_EDITING;
         *stay_open = false;
+
+        Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
+
+        ctx->loaded_tex = LoadTextureFromImage(img);
+        UnloadImage(img);
+        UpdateTexture(ctx->loaded_tex, ctx->image_data);
+        ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
     }
 }
 
@@ -136,12 +134,7 @@ void draw_ui(Context* ctx) {
                         fprintf(stderr, "Failed to load image: %s\n", path);
                         exit(1);
                     }
-                    if (channels != 4) {
-                        fprintf(stderr, "Error image channels != 4");
-                        exit(1); // TMP
-                     }
                     ctx->mode = UI_MODE_IMAGE_EDITING;
-                    ctx->loaded = true;
                     Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
 
                     ctx->loaded_tex = LoadTextureFromImage(img);
@@ -164,39 +157,63 @@ void draw_ui(Context* ctx) {
     uiEnd(&ui_info);
 }
 
-void draw_image(Context* ctx) {
-    if (ctx->loaded) {
-        Rectangle src = {
-            .width = ctx->loaded_tex.width,
-            .height = ctx->loaded_tex.height,
-        };
+Rectangle get_image_dst(Context* ctx)
+{
+    Rectangle dst = {
+        .x = 0,
+        .y = 0,
+        .width = window_width * 0.8f,
+    };
 
-        Rectangle dst = {
-            .width = window_width * 0.8f,
-            .height = dst.width / ctx->loaded_ratio,
-        };
+    dst.height = dst.width / ctx->loaded_ratio;
 
-        if (dst.height > window_height) {
-            dst.height = window_height;
-            dst.width = dst.height * ctx->loaded_ratio;
-        }
-
-        DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    if (dst.height > window_height) {
+        dst.height = window_height;
+        dst.width = dst.height * ctx->loaded_ratio;
     }
+
+    return dst;
 }
 
-static inline int32_t vector_to_index(Context* ctx, Vector2 vec) {
-    int32_t index = ((int32_t)vec.y * ctx->new_image_width + (int32_t)vec.x) * ctx->new_image_channels;
-    if (index < 0 || index < ctx->new_image_width * ctx->new_image_height * ctx->new_image_channels) {
-        fprintf(stderr, "WARNING invalid index\n");
+void draw_image(Context* ctx) {
+    if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
+    Rectangle src = {
+        .width = ctx->loaded_tex.width,
+        .height = ctx->loaded_tex.height,
+    };
+
+    Rectangle dst = get_image_dst(ctx);
+
+    DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+}
+
+static inline int32_t vector_to_index(Context* ctx, Vector2 vec, Rectangle dst) {
+    float u = (vec.x - dst.x) / dst.width;
+    float v = (vec.y - dst.y) / dst.height;
+
+    int32_t x = (int32_t)(u * ctx->new_image_width);
+    int32_t y = (int32_t)(v * ctx->new_image_height);
+
+    if (x < 0 || y < 0 ||
+        x >= ctx->new_image_width ||
+        y >= ctx->new_image_height) {
+        fprintf(stderr, "Warning: writing out of image bounds\n");
         return 0;
     }
+
+    int32_t index = (y * ctx->new_image_width + x) * 4;
     return index;
 }
 
 void update_image_data(Context* ctx) {
+    if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int32_t index = vector_to_index(ctx, GetMousePosition());
+        Rectangle dst = get_image_dst(ctx);
+        Vector2 mouse = GetMousePosition();
+    
+        if (!CheckCollisionPointRec(mouse, dst)) return;
+
+        int32_t index = vector_to_index(ctx, mouse, dst);
         ctx->image_data[index] = 255;
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
