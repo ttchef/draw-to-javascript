@@ -130,16 +130,23 @@ void draw_ui(Context* ctx) {
                         "Images",
                         0);
                 if (path) {
-                    ctx->image_data = stbi_load(path, &ctx->new_image_width, &ctx->new_image_height, &ctx->new_image_channels, 0);
+                    int32_t channels = 0;
+                    ctx->image_data = stbi_load(path, &ctx->new_image_width, &ctx->new_image_height, &channels, 4);
                     if (!ctx->image_data) {
                         fprintf(stderr, "Failed to load image: %s\n", path);
                         exit(1);
                     }
+                    if (channels != 4) {
+                        fprintf(stderr, "Error image channels != 4");
+                        exit(1); // TMP
+                     }
                     ctx->mode = UI_MODE_IMAGE_EDITING;
                     ctx->loaded = true;
+                    Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
 
-                    // I know its inefficent
-                    ctx->loaded_tex = LoadTexture(path);
+                    ctx->loaded_tex = LoadTextureFromImage(img);
+                    UnloadImage(img);
+                    UpdateTexture(ctx->loaded_tex, ctx->image_data);
                     ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
                 }
                 else {
@@ -178,6 +185,25 @@ void draw_image(Context* ctx) {
     }
 }
 
+static inline int32_t vector_to_index(Context* ctx, Vector2 vec) {
+    int32_t index = ((int32_t)vec.y * ctx->new_image_width + (int32_t)vec.x) * ctx->new_image_channels;
+    if (index < 0 || index < ctx->new_image_width * ctx->new_image_height * ctx->new_image_channels) {
+        fprintf(stderr, "WARNING invalid index\n");
+        return 0;
+    }
+    return index;
+}
+
+void update_image_data(Context* ctx) {
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        int32_t index = vector_to_index(ctx, GetMousePosition());
+        ctx->image_data[index] = 255;
+
+        UpdateTexture(ctx->loaded_tex, ctx->image_data);
+    }
+
+}
+
 int main() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT);
     InitWindow(window_width, window_height, "Draw to javascirpt");
@@ -189,6 +215,8 @@ int main() {
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
+
+        update_image_data(&ctx);
 
         BeginDrawing();
         ClearBackground(ctx.clear_color);
