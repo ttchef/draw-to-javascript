@@ -6,10 +6,10 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
@@ -25,7 +25,10 @@ enum uiMode {
 typedef struct Context {
     int32_t new_image_width;
     int32_t new_image_height;
+    int32_t new_image_channels;
+    uint8_t* image_data;
     enum uiMode mode;
+    Color clear_color;
 } Context;
 
 void new_image_menu(bool* stay_open, Context* ctx) {
@@ -44,7 +47,7 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     DrawText(text, menu_start_x + menu_width * 0.5f - text_width * 0.5f, menu_start_y + menu_height * 0.1f, 35, RAYWHITE);
 
     Rectangle bounds = {
-        .x = menu_start_x + menu_width * 0.33f,
+        .x = menu_start_x + menu_width * 0.25f,
         .y = menu_start_y + menu_height * 0.4f,
         .width = menu_width * 0.1f,
         .height = bounds.width,
@@ -57,11 +60,18 @@ void new_image_menu(bool* stay_open, Context* ctx) {
         new_image_width_edit_mode = !new_image_width_edit_mode;
     }
 
-    bounds.x += menu_width * 0.33f;
+    bounds.x += menu_width * 0.25f;
 
     static bool new_image_height_edit_mode = false;
     if (GuiValueBox(bounds, "Height", &ctx->new_image_height, 1, 4000, new_image_height_edit_mode)) {
         new_image_height_edit_mode = !new_image_height_edit_mode;
+    }
+    
+    bounds.x += menu_width * 0.25f;
+
+    static bool new_image_channels_edit_mode = false;
+    if (GuiValueBox(bounds, "Channels", &ctx->new_image_channels, 1, 4, new_image_channels_edit_mode)) {
+        new_image_channels_edit_mode = !new_image_channels_edit_mode;
     }
 
     bounds.width = menu_width * 0.25f;
@@ -113,15 +123,14 @@ int main() {
 
     Context ctx = {0};
     ctx.mode = UI_MODE_FILE_SELECTION;
-
-    Color clear_color = BLACK;
+    ctx.clear_color = BLACK;
 
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
 
         BeginDrawing();
-        ClearBackground(clear_color);
+        ClearBackground(ctx.clear_color);
 
         draw_ui(&ctx);
 
