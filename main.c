@@ -15,11 +15,14 @@
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "ui.h"
 
+#define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
+
 int32_t window_width = 1200;
 int32_t window_height = 800;
 
 enum uiMode {
     UI_MODE_FILE_SELECTION,
+    UI_MODE_IMAGE_EDITING,
 };
 
 typedef struct Context {
@@ -84,7 +87,13 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     bounds.x += menu_width * 0.33f;
 
     if (GuiButton(bounds, "Create")) {
-        
+        ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * ctx->new_image_channels);
+        if (!ctx->image_data) {
+            fprintf(stderr, "Failed to create new Image\n");
+            exit(1);
+        };
+        ctx->mode = UI_MODE_IMAGE_EDITING;
+        *stay_open = false;
     }
 }
 
@@ -105,12 +114,35 @@ void draw_ui(Context* ctx) {
     switch (ctx->mode) {
         case UI_MODE_FILE_SELECTION:
             static bool image_menu = false;
-            if (uiButton(NULL, "New Image")) {
+            if (uiButton(NULL, "New Image")) {;
                 image_menu = true;
             }
-            uiButton(NULL, "Open Image");
+            if (uiButton(NULL, "Open Image")) {
+                const char* filters[] = { "*.png", "*.jpg", "*.jpeg" };
+                const char* path = tinyfd_openFileDialog(
+                        "Open Image",
+                        "",
+                        ARRAY_LEN(filters),
+                        filters,
+                        "Images",
+                        0);
+                if (path) {
+                    ctx->image_data = stbi_load(path, &ctx->new_image_width, &ctx->new_image_height, &ctx->new_image_channels, 0);
+                    if (!ctx->image_data) {
+                        fprintf(stderr, "Failed to load image: %s\n", path);
+                        exit(1);
+                    }
+                    ctx->mode = UI_MODE_IMAGE_EDITING;
+                }
+                else {
+                    fprintf(stderr, "Failed selecting a file!\n");
+                }
+            }
             uiButton(NULL, "Open Javascript");
             if (image_menu) new_image_menu(&image_menu, ctx);
+            break;
+        case UI_MODE_IMAGE_EDITING:
+            uiButton(NULL, "Image Editing");
             break;
     };
 
