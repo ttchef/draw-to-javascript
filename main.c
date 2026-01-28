@@ -30,6 +30,9 @@ typedef struct Context {
     int32_t new_image_height;
     int32_t new_image_channels;
     uint8_t* image_data;
+    bool loaded;
+    Texture2D loaded_tex;
+    float loaded_ratio;
     enum uiMode mode;
     Color clear_color;
 } Context;
@@ -133,6 +136,11 @@ void draw_ui(Context* ctx) {
                         exit(1);
                     }
                     ctx->mode = UI_MODE_IMAGE_EDITING;
+                    ctx->loaded = true;
+
+                    // I know its inefficent
+                    ctx->loaded_tex = LoadTexture(path);
+                    ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
                 }
                 else {
                     fprintf(stderr, "Failed selecting a file!\n");
@@ -147,6 +155,27 @@ void draw_ui(Context* ctx) {
     };
 
     uiEnd(&ui_info);
+}
+
+void draw_image(Context* ctx) {
+    if (ctx->loaded) {
+        Rectangle src = {
+            .width = ctx->loaded_tex.width,
+            .height = ctx->loaded_tex.height,
+        };
+
+        Rectangle dst = {
+            .width = window_width * 0.8f,
+            .height = dst.width / ctx->loaded_ratio,
+        };
+
+        if (dst.height > window_height) {
+            dst.height = window_height;
+            dst.width = dst.height * ctx->loaded_ratio;
+        }
+
+        DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    }
 }
 
 int main() {
@@ -164,6 +193,7 @@ int main() {
         BeginDrawing();
         ClearBackground(ctx.clear_color);
 
+        draw_image(&ctx);
         draw_ui(&ctx);
 
         EndDrawing();
