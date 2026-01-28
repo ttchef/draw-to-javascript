@@ -1,0 +1,15 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/x86_64-w64-mingw32-gcc",
+      "-c",
+      "-Iraylib/include",
+      "-o",
+      "main.exe",
+      "main.c"
+    ],
+    "directory": "/home/ttchef/coding/draw-to-javascript",
+    "file": "/home/ttchef/coding/draw-to-javascript/main.c",
+    "output": "/home/ttchef/coding/draw-to-javascript/main.exe"
+  }
+]
