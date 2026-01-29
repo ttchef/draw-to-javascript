@@ -215,6 +215,9 @@ void update_image_data(Context* ctx) {
 
         int32_t index = vector_to_index(ctx, mouse, dst);
         ctx->image_data[index] = 255;
+        ctx->image_data[index + 1] = 0;
+        ctx->image_data[index + 2] = 0;
+        ctx->image_data[index + 3] = 255;
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }
