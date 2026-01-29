@@ -24,6 +24,7 @@ int32_t window_height = 800;
 enum uiMode {
     UI_MODE_FILE_SELECTION,
     UI_MODE_IMAGE_EDITING,
+    UI_MODE_EXPORT,
 };
 
 typedef struct Vector2I {
@@ -104,6 +105,13 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     }
 }
 
+static char* image_to_javascript(Context* ctx) {
+    char* buffer = malloc(100);
+    buffer[0] = 'h';
+    buffer[1] = 0;
+    return buffer;
+}
+
 void draw_ui(Context* ctx) {
     uiInfo ui_info = {
         .start_x = window_width * 0.8f,
@@ -157,6 +165,51 @@ void draw_ui(Context* ctx) {
             break;
         case UI_MODE_IMAGE_EDITING:
             uiColorPicker(NULL, "Color Picker", &ctx->clear_color);
+            if (uiButton(NULL, "Export Tab")) {
+                ctx->mode = UI_MODE_EXPORT;
+            }
+            break;
+        case UI_MODE_EXPORT:
+            if (uiButton(NULL, "Image Editing")) {
+                ctx->mode = UI_MODE_IMAGE_EDITING;
+            }
+            if (uiButton(NULL, "Export to Javascript")) {
+                const char* filters[] = { "*.txt", "*.js" };
+                const char* path = tinyfd_saveFileDialog(
+                    "",
+                    "",
+                    ARRAY_LEN(filters),
+                    filters,
+                    "Text or Js files");
+                if (!path) {
+                    fprintf(stderr, "Failed saving file!\n");
+                    uiEnd(&ui_info);
+                    return;
+                }
+                FILE* file = fopen(path, "wb");
+                if (!file) {
+                    fprintf(stderr, "Failed to open file: %s\n", path);
+                    uiEnd(&ui_info);
+                }
+                char* buffer = image_to_javascript(ctx);
+                fprintf(file, "%s", buffer);
+                fclose(file);
+            }
+            if (uiButton(NULL, "Export to Image")) {
+                const char* filters[] = { "*.txt", "*.js" };
+                const char* path = tinyfd_saveFileDialog(
+                        "",
+                        "",
+                        ARRAY_LEN(filters),
+                        filters,
+                        "Text or Js files");
+                if (!path) {
+                    fprintf(stderr, "Failed saving file!\n");
+                    uiEnd(&ui_info);
+                    return;
+                }
+                stbi_write_png(path, ctx->new_image_width, ctx->new_image_height, 4, ctx->image_data, ctx->new_image_width * 4);
+            }
             break;
     };
 
@@ -246,29 +299,8 @@ void update_image_data(Context* ctx) {
             }
         }
 
-        /*
-        for (int32_t i = 0; i < radius; i++) {
-            for (float j = 0.0f; j < 2 * PI; j += 0.01f) {
-                float x = cos(j) * i;
-                float y = sin(j) * i;
-                Vector2 pos = mouse;
-                pos.x += x;
-                pos.y += y;
-                int32_t index = vector_to_index(ctx, pos, dst);
-                ctx->image_data[index] = 255;
-                ctx->image_data[index + 1] = 0;
-                ctx->image_data[index + 2] = 0;
-                ctx->image_data[index + 3] = 255;
-            }
-        }
-        */
-
-        //int32_t index = vector_to_index(ctx, mouse, dst);
-
-
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }
-
 }
 
 int main() {
@@ -282,6 +314,8 @@ int main() {
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
+        float fps = 1.0f / GetFrameTime();
+
 
         update_image_data(&ctx);
 
@@ -290,6 +324,7 @@ int main() {
 
         draw_image(&ctx);
         draw_ui(&ctx);
+        DrawText(TextFormat("FPS: %.2f", fps), 10, 10, 20, RAYWHITE);
 
         EndDrawing();
     }
