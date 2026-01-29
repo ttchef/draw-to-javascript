@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include <raylib.h>
+#include <raymath.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
@@ -205,6 +206,12 @@ static inline int32_t vector_to_index(Context* ctx, Vector2 vec, Rectangle dst) 
     return index;
 }
 
+static float distance_to_circle(Vector2 center, Vector2 pos) {
+    float radius = 25.0f;
+    float dist = Vector2Distance(center, pos);
+    return dist - radius;
+}
+
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -213,11 +220,44 @@ void update_image_data(Context* ctx) {
     
         if (!CheckCollisionPointRec(mouse, dst)) return;
 
-        int32_t index = vector_to_index(ctx, mouse, dst);
-        ctx->image_data[index] = 255;
-        ctx->image_data[index + 1] = 0;
-        ctx->image_data[index + 2] = 0;
-        ctx->image_data[index + 3] = 255;
+        float radius = 25.0f;
+        float radius_half = radius * 0.5f;
+
+        for (int32_t i = -radius; i < radius; i++) {
+            for (int32_t j = -radius; j < radius; j++) {
+                Vector2 pos = mouse;
+                pos.x += i;
+                pos.y += j;
+                float dist = distance_to_circle(mouse, pos);
+                if (dist <= 0.0f) {
+                    int32_t index = vector_to_index(ctx, pos, dst);
+                    ctx->image_data[index] = 255;
+                    ctx->image_data[index + 1] = 0;
+                    ctx->image_data[index + 2] = 0;
+                    ctx->image_data[index + 3] = 255;
+                }
+            }
+        }
+
+        /*
+        for (int32_t i = 0; i < radius; i++) {
+            for (float j = 0.0f; j < 2 * PI; j += 0.01f) {
+                float x = cos(j) * i;
+                float y = sin(j) * i;
+                Vector2 pos = mouse;
+                pos.x += x;
+                pos.y += y;
+                int32_t index = vector_to_index(ctx, pos, dst);
+                ctx->image_data[index] = 255;
+                ctx->image_data[index + 1] = 0;
+                ctx->image_data[index + 2] = 0;
+                ctx->image_data[index + 3] = 255;
+            }
+        }
+        */
+
+        //int32_t index = vector_to_index(ctx, mouse, dst);
+
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }
