@@ -105,11 +105,20 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     }
 }
 
-static char* image_to_javascript(Context* ctx) {
-    char* buffer = malloc(100);
-    buffer[0] = 'h';
-    buffer[1] = 0;
-    return buffer;
+static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
+    for (int32_t y = 0; y < ctx->new_image_height; y++) {
+        for (int32_t x = 0; x < ctx->new_image_width; x++) {
+            int32_t index = y * ctx->new_image_width + x;
+            
+            uint32_t color = ((uint32_t*)ctx->image_data)[index];
+            color &= 255 << 24;
+            color >>= 8;
+
+            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1, 1, {fill:\"#%X\"})\n", name_x, (x - ctx->new_image_width / 2), 
+                                                                           name_y, (y - ctx->new_image_height / 2), 
+                                                                           color);
+        }
+    }
 }
 
 void draw_ui(Context* ctx) {
@@ -119,7 +128,7 @@ void draw_ui(Context* ctx) {
         .width = window_width * 0.2f,
         .height = window_height,
         .padding_x = ui_info.width * 0.1f,
-        .padding_y = window_height * 0.1f,
+        .padding_y = window_height * 0.07f,
         .element_height = window_height * 0.1f,
     };
     DrawRectangle(ui_info.start_x, 0, ui_info.width, window_height, DARKGRAY);
@@ -173,6 +182,22 @@ void draw_ui(Context* ctx) {
             if (uiButton(NULL, "Image Editing")) {
                 ctx->mode = UI_MODE_IMAGE_EDITING;
             }
+
+            static bool text_box_pos_x_edit_mode = false;
+            size_t text_box_pos_x_size = 256;
+            static char text_box_pos_x_input[256];
+            if (uiTextBox(NULL, text_box_pos_x_input, text_box_pos_x_size, text_box_pos_x_edit_mode)) {
+                text_box_pos_x_edit_mode = !text_box_pos_x_edit_mode;
+            }
+
+            static bool text_box_pos_y_edit_mode = false;
+            size_t text_box_pos_y_size = 256;
+            static char text_box_pos_y_input[256];
+            if (uiTextBox(NULL, text_box_pos_y_input, text_box_pos_y_size, text_box_pos_y_edit_mode)) {
+                text_box_pos_y_edit_mode = !text_box_pos_y_edit_mode;
+            }
+
+
             if (uiButton(NULL, "Export to Javascript")) {
                 const char* filters[] = { "*.txt", "*.js" };
                 const char* path = tinyfd_saveFileDialog(
@@ -191,8 +216,7 @@ void draw_ui(Context* ctx) {
                     fprintf(stderr, "Failed to open file: %s\n", path);
                     uiEnd(&ui_info);
                 }
-                char* buffer = image_to_javascript(ctx);
-                fprintf(file, "%s", buffer);
+                image_to_javascript(ctx, file, text_box_pos_x_input, text_box_pos_y_input);
                 fclose(file);
             }
             if (uiButton(NULL, "Export to Image")) {
@@ -202,7 +226,7 @@ void draw_ui(Context* ctx) {
                         "",
                         ARRAY_LEN(filters),
                         filters,
-                        "Text or Js files");
+                        "Image Files");
                 if (!path) {
                     fprintf(stderr, "Failed saving file!\n");
                     uiEnd(&ui_info);
@@ -262,7 +286,7 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
     if (vec.x < 0 || vec.y < 0 ||
         vec.x >= ctx->new_image_width ||
         vec.y >= ctx->new_image_height)
-        return 0;
+        return -1;
 
     return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
@@ -291,6 +315,7 @@ void update_image_data(Context* ctx) {
                 pos.y += j;
                 if (i * i + j * j <= radius_squared) {
                     int32_t index = vec_to_img(ctx, pos);
+                    if (index == -1) continue;
                     ctx->image_data[index] = 255;
                     ctx->image_data[index + 1] = 0;
                     ctx->image_data[index + 2] = 0;

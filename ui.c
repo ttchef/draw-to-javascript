@@ -73,3 +73,9 @@ int32_t uiColorPicker(Rectangle *bounds, const uint8_t *text, Color *color) {
     return GuiColorPicker(rect, text, color);
 }
 
+int32_t uiTextBox(Rectangle *bounds, uint8_t *text, int32_t text_size, bool edit_mode) {
+    Rectangle rect = _uiGetRectangleInput(bounds);
+    uiInfoAddElement(rect.height);
+    return GuiTextBox(rect, text, text_size, edit_mode);
+}
+
