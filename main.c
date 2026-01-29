@@ -40,6 +40,10 @@ typedef struct Context {
     float loaded_ratio;
     enum uiMode mode;
     Color clear_color;
+    Color draw_color;
+    Color ignore_color;
+    float brush_size;
+    bool export_x_mirrored;
 } Context;
 
 void new_image_menu(bool* stay_open, Context* ctx) {
@@ -89,6 +93,7 @@ void new_image_menu(bool* stay_open, Context* ctx) {
 
     if (GuiButton(bounds, "Create")) {
         ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * 4);
+        memset(ctx->image_data, 0, ctx->new_image_width * ctx->new_image_height * 4);
         if (!ctx->image_data) {
             fprintf(stderr, "Failed to create new Image\n");
             exit(1);
@@ -112,11 +117,13 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
             
             uint32_t color = ((uint32_t*)ctx->image_data)[index];
             color &= 255 << 24;
+            if (memcmp(&color, &ctx->ignore_color, sizeof(uint32_t)) == 0) continue;
             color >>= 8;
 
-            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1, 1, {fill:\"#%X\"})\n", name_x, (x - ctx->new_image_width / 2), 
-                                                                           name_y, (y - ctx->new_image_height / 2), 
-                                                                           color);
+            int32_t pos_x = x - ctx->new_image_width / 2;
+            if (ctx->export_x_mirrored) x *= -1;
+            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1, 1, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
+                    -(y - ctx->new_image_height / 2), color);
         }
     }
 }
@@ -173,7 +180,9 @@ void draw_ui(Context* ctx) {
             if (image_menu) new_image_menu(&image_menu, ctx);
             break;
         case UI_MODE_IMAGE_EDITING:
-            uiColorPicker(NULL, "Color Picker", &ctx->clear_color);
+            uiSlider(NULL, "Brush Size", NULL, &ctx->brush_size, 0.5f, 50.0f);
+            uiColorPicker(NULL, "Color Picker", &ctx->draw_color);
+            uiColorPicker(NULL, "Color Picker", &ctx->ignore_color);
             if (uiButton(NULL, "Export Tab")) {
                 ctx->mode = UI_MODE_EXPORT;
             }
@@ -196,6 +205,8 @@ void draw_ui(Context* ctx) {
             if (uiTextBox(NULL, text_box_pos_y_input, text_box_pos_y_size, text_box_pos_y_edit_mode)) {
                 text_box_pos_y_edit_mode = !text_box_pos_y_edit_mode;
             }
+
+            uiCheckBox(NULL, "Gespiegelt X", &ctx->export_x_mirrored);
 
 
             if (uiButton(NULL, "Export to Javascript")) {
@@ -268,6 +279,7 @@ void draw_image(Context* ctx) {
     Rectangle dst = get_image_dst(ctx);
 
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+    DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
 
 static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
@@ -291,12 +303,6 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
     return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
 
-static float distance_to_circle(Vector2 center, Vector2 pos) {
-    float radius = 25.0f;
-    float dist = Vector2Distance(center, pos);
-    return dist - radius;
-}
-
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -305,7 +311,7 @@ void update_image_data(Context* ctx) {
     
         if (!CheckCollisionPointRec(mouse, dst)) return;
 
-        float radius = 25.0f;
+        float radius = ctx->brush_size;
         float radius_squared = radius * radius;
 
         for (int32_t i = -radius; i <= radius; i++) {
@@ -316,9 +322,9 @@ void update_image_data(Context* ctx) {
                 if (i * i + j * j <= radius_squared) {
                     int32_t index = vec_to_img(ctx, pos);
                     if (index == -1) continue;
-                    ctx->image_data[index] = 255;
-                    ctx->image_data[index + 1] = 0;
-                    ctx->image_data[index + 2] = 0;
+                    ctx->image_data[index] = ctx->draw_color.r;
+                    ctx->image_data[index + 1] = ctx->draw_color.g;
+                    ctx->image_data[index + 2] = ctx->draw_color.b;
                     ctx->image_data[index + 3] = 255;
                 }
             }
@@ -335,12 +341,13 @@ int main() {
     Context ctx = {0};
     ctx.mode = UI_MODE_FILE_SELECTION;
     ctx.clear_color = BLACK;
+    ctx.draw_color = RED;
+    ctx.brush_size = 2.0f;
 
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
         float fps = 1.0f / GetFrameTime();
-
 
         update_image_data(&ctx);
 
