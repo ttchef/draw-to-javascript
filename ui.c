@@ -67,3 +67,9 @@ int32_t uiCheckBox(Rectangle *bounds, const uint8_t *text, bool *checked) {
     return GuiCheckBox(rect, text, checked);
 }
 
+int32_t uiColorPicker(Rectangle *bounds, const uint8_t *text, Color *color) {
+    Rectangle rect = _uiGetRectangleInput(bounds);
+    uiInfoAddElement(rect.height);
+    return GuiColorPicker(rect, text, color);
+}
+

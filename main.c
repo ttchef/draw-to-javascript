@@ -26,6 +26,11 @@ enum uiMode {
     UI_MODE_IMAGE_EDITING,
 };
 
+typedef struct Vector2I {
+    int32_t x;
+    int32_t y;
+} Vector2I;
+
 typedef struct Context {
     int32_t new_image_width;
     int32_t new_image_height;
@@ -151,14 +156,14 @@ void draw_ui(Context* ctx) {
             if (image_menu) new_image_menu(&image_menu, ctx);
             break;
         case UI_MODE_IMAGE_EDITING:
-            uiButton(NULL, "Image Editing");
+            uiColorPicker(NULL, "Color Picker", &ctx->clear_color);
             break;
     };
 
     uiEnd(&ui_info);
 }
 
-Rectangle get_image_dst(Context* ctx)
+static Rectangle get_image_dst(Context* ctx)
 {
     Rectangle dst = {
         .x = 0,
@@ -188,22 +193,25 @@ void draw_image(Context* ctx) {
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
 }
 
-static inline int32_t vector_to_index(Context* ctx, Vector2 vec, Rectangle dst) {
+static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
     float u = (vec.x - dst.x) / dst.width;
     float v = (vec.y - dst.y) / dst.height;
 
-    int32_t x = (int32_t)(u * ctx->new_image_width);
-    int32_t y = (int32_t)(v * ctx->new_image_height);
+    u = fminf(fmaxf(u, 0.0f), 1.0f);
+    v = fminf(fmaxf(v, 0.0f), 1.0f);
 
-    if (x < 0 || y < 0 ||
-        x >= ctx->new_image_width ||
-        y >= ctx->new_image_height) {
-        fprintf(stderr, "Warning: writing out of image bounds\n");
+    int cx = (int32_t)floorf(u * ctx->new_image_width);
+    int cy = (int32_t)floorf(v * ctx->new_image_height);
+    return (Vector2I){cx, cy};
+}
+
+static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
+    if (vec.x < 0 || vec.y < 0 ||
+        vec.x >= ctx->new_image_width ||
+        vec.y >= ctx->new_image_height)
         return 0;
-    }
 
-    int32_t index = (y * ctx->new_image_width + x) * 4;
-    return index;
+    return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
 
 static float distance_to_circle(Vector2 center, Vector2 pos) {
@@ -221,16 +229,15 @@ void update_image_data(Context* ctx) {
         if (!CheckCollisionPointRec(mouse, dst)) return;
 
         float radius = 25.0f;
-        float radius_half = radius * 0.5f;
+        float radius_squared = radius * radius;
 
-        for (int32_t i = -radius; i < radius; i++) {
-            for (int32_t j = -radius; j < radius; j++) {
-                Vector2 pos = mouse;
+        for (int32_t i = -radius; i <= radius; i++) {
+            for (int32_t j = -radius; j <= radius; j++) {
+                Vector2I pos = screen_to_image_space(ctx, mouse, dst);
                 pos.x += i;
                 pos.y += j;
-                float dist = distance_to_circle(mouse, pos);
-                if (dist <= 0.0f) {
-                    int32_t index = vector_to_index(ctx, pos, dst);
+                if (i * i + j * j <= radius_squared) {
+                    int32_t index = vec_to_img(ctx, pos);
                     ctx->image_data[index] = 255;
                     ctx->image_data[index + 1] = 0;
                     ctx->image_data[index + 2] = 0;
