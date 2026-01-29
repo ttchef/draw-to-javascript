@@ -44,6 +44,7 @@ typedef struct Context {
     Color ignore_color;
     float brush_size;
     bool export_x_mirrored;
+    Camera2D camera;
 } Context;
 
 void new_image_menu(bool* stay_open, Context* ctx) {
@@ -113,16 +114,31 @@ void new_image_menu(bool* stay_open, Context* ctx) {
 static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
     for (int32_t y = 0; y < ctx->new_image_height; y++) {
         for (int32_t x = 0; x < ctx->new_image_width; x++) {
-            int32_t index = y * ctx->new_image_width + x;
+            int32_t index = (y * ctx->new_image_width + x) * 4;
             
-            uint32_t color = ((uint32_t*)ctx->image_data)[index];
-            color &= 255 << 24;
-            if (memcmp(&color, &ctx->ignore_color, sizeof(uint32_t)) == 0) continue;
-            color >>= 8;
+            uint8_t r = ctx->image_data[index];
+            uint8_t g = ctx->image_data[index + 1];
+            uint8_t b = ctx->image_data[index + 2];
+            uint8_t a = ctx->image_data[index + 3];
+            Color cmp_color = (Color){
+                .r = r,
+                .b = b,
+                .g = g,
+                .a = a,
+            };
+            uint32_t color = 0;
+            color |= b;
+            color |= g << 8;
+            color |= r << 16;
+
+            if (cmp_color.r == ctx->ignore_color.r &&
+                    cmp_color.g == ctx->ignore_color.g &&
+                    cmp_color.b == ctx->ignore_color.b &&
+                    cmp_color.a == ctx->ignore_color.a) continue;
 
             int32_t pos_x = x - ctx->new_image_width / 2;
-            if (ctx->export_x_mirrored) x *= -1;
-            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1, 1, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
+            if (ctx->export_x_mirrored) pos_x *= -1;
+            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1.1, 1.1, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
                     -(y - ctx->new_image_height / 2), color);
         }
     }
@@ -307,7 +323,7 @@ void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         Rectangle dst = get_image_dst(ctx);
-        Vector2 mouse = GetMousePosition();
+        Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
     
         if (!CheckCollisionPointRec(mouse, dst)) return;
 
@@ -334,6 +350,28 @@ void update_image_data(Context* ctx) {
     }
 }
 
+static void handle_input(Context* ctx) {
+    if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
+    
+    // Panning
+    if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        Vector2 delta = GetMouseDelta();
+        delta = Vector2Scale(delta, -1.0f / ctx->camera.zoom);
+        ctx->camera.target = Vector2Add(ctx->camera.target, delta);
+    }
+
+    // Zoom
+    float wheel = GetMouseWheelMove();
+    if (wheel != 0) {
+        Vector2 mouse_world_pos = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
+        ctx->camera.offset = GetMousePosition();
+        ctx->camera.target = mouse_world_pos;
+
+        float scale = wheel * 0.2f;
+        ctx->camera.zoom = Clamp(expf(logf(ctx->camera.zoom) + scale), 0.125f, 64.0f);
+    }
+}
+
 int main() {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT);
     InitWindow(window_width, window_height, "Draw to javascirpt");
@@ -343,21 +381,25 @@ int main() {
     ctx.clear_color = BLACK;
     ctx.draw_color = RED;
     ctx.brush_size = 2.0f;
+    ctx.camera.zoom = 1.0f;
 
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
         float fps = 1.0f / GetFrameTime();
 
+        handle_input(&ctx);
         update_image_data(&ctx);
 
         BeginDrawing();
         ClearBackground(ctx.clear_color);
+        BeginMode2D(ctx.camera);
 
         draw_image(&ctx);
-        draw_ui(&ctx);
         DrawText(TextFormat("FPS: %.2f", fps), 10, 10, 20, RAYWHITE);
 
+        EndMode2D();
+        draw_ui(&ctx);
         EndDrawing();
     }
 
