@@ -18,6 +18,10 @@
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
+#define UNDO_COUNT 10
+
+// IDC about how uncealn it is i dont want to pass them into every function
+// at this point i didnt have a ctx and i dont wanna refactor now
 int32_t window_width = 1200;
 int32_t window_height = 800;
 
@@ -31,6 +35,12 @@ typedef struct Vector2I {
     int32_t x;
     int32_t y;
 } Vector2I;
+
+typedef struct PixelState {
+    int32_t index;
+    Color old_color;
+    Color new_color;
+} PixelState;
 
 typedef struct Context {
     int32_t new_image_width;
@@ -52,6 +62,8 @@ typedef struct Context {
     Vector2 previous_mouse_pos;
     Vector2 current_mouse_pos;
     Camera2D camera;
+    float export_scale;
+    PixelState* save_states[UNDO_COUNT];
 } Context;
 
 void load_from_javascript(Context* ctx) {
@@ -69,6 +81,7 @@ void load_from_javascript(Context* ctx) {
     }
 
     FILE* file = fopen(path, "rb");
+    // TODO: implement...
 }
 
 static void initzialize_img_alpha(Context* ctx) {
@@ -187,9 +200,11 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
             if (compare_colors(cmp_color, ctx->ignore_color)) continue;
 
             int32_t pos_x = x - ctx->new_image_width / 2;
+            int32_t pos_y = -(y - ctx->new_image_height / 2);
             if (ctx->export_x_mirrored) pos_x *= -1;
-            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1.5, 1.5, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
-                    -(y - ctx->new_image_height / 2), color);
+            fprintf(fd, "Canvas.rect(%s%+.2f, %s%+.2f, %.2f, %.2f, {fill:\"#%X\"}),\n", name_x,
+                    pos_x * ctx->export_scale, name_y, pos_y * ctx->export_scale,
+                    1.5f * ctx->export_scale, 1.5f * ctx->export_scale, color);
         }
     }
 }
@@ -328,6 +343,7 @@ void draw_ui(Context* ctx) {
             }
 
             uiCheckBox(NULL, "Gespiegelt X", &ctx->export_x_mirrored);
+            uiSlider(NULL, "Scale", NULL, &ctx->export_scale, 0.1f, 5.0f);
 
 
             if (uiButton(NULL, "Export to Javascript")) {
@@ -576,6 +592,7 @@ int main() {
     ctx.draw_color = RED;
     ctx.brush_size = 2.0f;
     ctx.camera.zoom = 1.0f;
+    ctx.export_scale = 1.0f;
 
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
