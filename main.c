@@ -383,8 +383,8 @@ void draw_image(Context* ctx) {
 
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
 
-    for (int32_t x = 0; x < ctx->new_image_width; x++) {
-        for (int32_t y = 0; y < ctx->new_image_height; y++) {
+    for (int32_t y = 0; y < ctx->new_image_width; y++) {
+        for (int32_t x = 0; x < ctx->new_image_height; x++) {
             int32_t index = vec_to_img(ctx, (Vector2I){ x, y});
 
             if (index < 0) continue;
@@ -398,7 +398,11 @@ void draw_image(Context* ctx) {
             if (ctx->debug_mode) {
                 DrawLine(0, y * dst_pixel_height, dst.width, y * dst_pixel_height, RAYWHITE);
                 DrawLine(x * dst_pixel_width, 0, x * dst_pixel_width, dst.height, RAYWHITE);
+                if (y == 0 ) DrawTextEx(GetFontDefault(), TextFormat("%d", x), (Vector2){x * dst_pixel_width + 1.0f, -5.0f}, 2.0f, 1.0f, RAYWHITE);
             }
+        }
+        if (ctx->debug_mode) {
+            DrawTextEx(GetFontDefault(), TextFormat("%d", y), (Vector2){-5.0f, y * dst_pixel_height + 1.0f}, 2.0f, 1.0f, RAYWHITE);
         }
     }
 
@@ -494,7 +498,6 @@ int main() {
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
-        float fps = 1.0f / GetFrameTime();
 
         handle_input(&ctx);
         update_image_data(&ctx);
@@ -506,7 +509,7 @@ int main() {
         DrawRectangle(0, 0, window_width, window_height, BLACK); // TMP
 
         draw_image(&ctx);
-        DrawText(TextFormat("FPS: %.2f", fps), 10, 10, 20, RAYWHITE);
+        DrawFPS(10, 10);
 
         EndMode2D();
         draw_ui(&ctx);
