@@ -15,6 +15,7 @@
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "ui.h"
+#include "darray.h"
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
@@ -38,6 +39,7 @@ typedef struct Vector2I {
 
 typedef struct PixelState {
     int32_t index;
+    float radius;
     Color old_color;
     Color new_color;
 } PixelState;
@@ -54,6 +56,7 @@ typedef struct Context {
     Color ignore_color;
     float brush_size;
     bool export_x_mirrored;
+    bool export_one_line;
     bool pick_color_draw;
     bool pick_color_ignore;
     bool draw_ignored_pixels;
@@ -64,6 +67,7 @@ typedef struct Context {
     Camera2D camera;
     float export_scale;
     PixelState* save_states[UNDO_COUNT];
+    int32_t save_states_index;
 } Context;
 
 void load_from_javascript(Context* ctx) {
@@ -343,8 +347,8 @@ void draw_ui(Context* ctx) {
             }
 
             uiCheckBox(NULL, "Gespiegelt X", &ctx->export_x_mirrored);
+            uiCheckBox(NULL, "One Line", &ctx->export_one_line);
             uiSlider(NULL, "Scale", NULL, &ctx->export_scale, 0.1f, 5.0f);
-
 
             if (uiButton(NULL, "Export to Javascript")) {
                 const char* filters[] = { "*.txt", "*.js" };
@@ -490,6 +494,7 @@ void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        bool first_time = !ctx->drawing;
         Vector2 mouse_screen = GetMousePosition();
         if (mouse_screen.x > window_width * 0.8f)  return;
 
@@ -516,6 +521,15 @@ void update_image_data(Context* ctx) {
             return;
         }
 
+        if (first_time) {
+            /* New Save state */
+            if (ctx->save_states[ctx->save_states_index]) {
+                darrayDestroy(ctx->save_states[ctx->save_states_index]);
+            }
+            ctx->save_states[ctx->save_states_index++] = darrayCreate(PixelState);
+            if (ctx->save_states_index >= UNDO_COUNT) ctx->save_states_index = 0; 
+        }
+
         float radius = ctx->brush_size;
         float radius_squared = radius * radius;
 
@@ -539,6 +553,11 @@ void update_image_data(Context* ctx) {
                     lerp_t = (float)i / lerp_count;
                     Vector2 pos_world = Vector2Lerp(prev_world, curr_world, lerp_t);
                     draw_circle(ctx, pos_world, dst);
+                 
+                    if (first_time) {
+                        /* Save to save state */
+                        
+                    }
                 }
                 return;
             }
@@ -555,7 +574,6 @@ static void handle_input(Context* ctx) {
     
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         ctx->drawing = false;
-        printf("Released!\n");
     }
 
     // Panning
