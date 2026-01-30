@@ -47,6 +47,23 @@ typedef struct Context {
     Camera2D camera;
 } Context;
 
+void load_from_javascript(Context* ctx) {
+    const char* filters[] = { "*.txt" };
+    const char* path = tinyfd_openFileDialog(
+            "Open Image",
+            "",
+            ARRAY_LEN(filters),
+            filters,
+            "Text Files",
+            0);
+    if (!path) {
+        fprintf(stderr, "Failed to get path!\n");
+        return;
+    }
+
+    FILE* file = fopen(path, "rb");
+}
+
 void new_image_menu(bool* stay_open, Context* ctx) {
     int32_t menu_width = window_width * 0.5f;
     int32_t menu_height = window_height * 0.5f;
@@ -138,7 +155,7 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
 
             int32_t pos_x = x - ctx->new_image_width / 2;
             if (ctx->export_x_mirrored) pos_x *= -1;
-            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1.1, 1.1, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
+            fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1.5, 1.5, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
                     -(y - ctx->new_image_height / 2), color);
         }
     }
@@ -197,6 +214,7 @@ void draw_ui(Context* ctx) {
             break;
         case UI_MODE_IMAGE_EDITING:
             uiSlider(NULL, "Brush Size", NULL, &ctx->brush_size, 0.5f, 50.0f);
+            uiTextEx(NULL, "Brush Color", RAYWHITE, false);
             uiColorPicker(NULL, "Color Picker", &ctx->draw_color);
             uiColorPicker(NULL, "Color Picker", &ctx->ignore_color);
             if (uiButton(NULL, "Export Tab")) {

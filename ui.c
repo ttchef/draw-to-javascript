@@ -1,7 +1,9 @@
 
 #include "ui.h"
+#include "raylib.h"
 
 #include <string.h>
+#include <stdio.h>
 
 uiInfo _ui_global_info = {0};
 int32_t _ui_global_current_y = 0;
@@ -78,4 +80,54 @@ int32_t uiTextBox(Rectangle *bounds, uint8_t *text, int32_t text_size, bool edit
     uiInfoAddElement(rect.height);
     return GuiTextBox(rect, text, text_size, edit_mode);
 }
+
+void uiText(FontInfo *info, const uint8_t *text, Color color) {
+    FontInfo font_info = {0};
+    if (!info) {
+        Rectangle rect = _uiGetRectangleInput(NULL);
+        font_info.x = rect.x;
+        font_info.y = rect.y;
+        font_info.size = rect.height;
+
+        int32_t font_width = MeasureText(text, font_info.size);
+        while (font_width > (_ui_global_info.width - 2 * _ui_global_info.padding_x)) {
+            font_info.size--;
+            font_width = MeasureText(text, font_info.size);
+        }
+    }
+    else {
+        font_info = *info;
+    }
+    uiInfoAddElement(font_info.size);
+    DrawText(text, font_info.x, font_info.y, font_info.size, color);
+}
+
+void uiTextEx(FontInfo *info, const uint8_t *text, Color color, bool padding_y) {
+    FontInfo font_info = {0};
+    if (!info) {
+        Rectangle rect = _uiGetRectangleInput(NULL);
+        font_info.x = rect.x;
+        font_info.y = rect.y;
+        font_info.size = rect.height;
+
+        int32_t font_width = MeasureText(text, font_info.size);
+        while (font_width > (_ui_global_info.width - 2 * _ui_global_info.padding_x)) {
+            font_info.size--;
+            font_width = MeasureText(text, font_info.size);
+        }
+    }
+    else {
+        font_info = *info;
+    }
+
+    if (!padding_y) {
+        _ui_global_current_y += font_info.size;
+    }
+    else {
+        uiInfoAddElement(font_info.size);
+    }
+
+    DrawText(text, font_info.x, font_info.y, font_info.size, color);
+}
+
 

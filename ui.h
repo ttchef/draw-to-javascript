@@ -11,6 +11,12 @@
 #include "raygui.h"
 #endif
 
+typedef struct FontInfo {
+    int32_t x;
+    int32_t y;
+    int32_t size;
+} FontInfo;
+
 typedef struct uiInfo {
     int32_t start_x;
     int32_t start_y;
@@ -35,6 +41,8 @@ int32_t uiSlider(Rectangle* bounds, const uint8_t* text_left, const uint8_t* tex
 int32_t uiCheckBox(Rectangle* bounds, const uint8_t* text, bool* checked);
 int32_t uiColorPicker(Rectangle* bounds, const uint8_t* text, Color* color);
 int32_t uiTextBox(Rectangle* bounds, uint8_t* text, int32_t text_size, bool edit_mode);
+void uiText(FontInfo* info, const uint8_t* text, Color color);
+void uiTextEx(FontInfo* info, const uint8_t* text, Color color, bool padding_y);
 
 Rectangle uiGetCurrentRect();
 
