@@ -181,21 +181,21 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
 }
 
 static Rectangle get_image_dst(Context* ctx) {
-    Rectangle dst = {
-        .x = 0,
-        .y = 0,
-        .width = window_width * 0.8f,
-    };
+    Rectangle dst = {0};
 
-    dst.height = dst.width / ctx->loaded_ratio;
+    int32_t scale_x = (int32_t)(window_width * 0.8f) / ctx->new_image_width;
+    int32_t scale_y = window_height / ctx->new_image_height;
+    int32_t scale = scale_x < scale_y ? scale_x : scale_y;
+    if (scale < 1) scale = 1;
 
-    if (dst.height > window_height) {
-        dst.height = window_height;
-        dst.width = dst.height * ctx->loaded_ratio;
-    }
+    dst.width  = ctx->new_image_width  * scale;
+    dst.height = ctx->new_image_height * scale;
+    dst.x = 0;
+    dst.y = 0;
 
     return dst;
 }
+
 
 static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
     float u = (vec.x - dst.x) / dst.width;
