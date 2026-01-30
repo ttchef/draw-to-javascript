@@ -370,6 +370,52 @@ void draw_ui(Context* ctx) {
     uiEnd(&ui_info);
 }
 
+static void draw_ignored_pixels(Context* ctx, Rectangle dst, float dst_pixel_width, float dst_pixel_height) {
+    for (int32_t y = 0; y < ctx->new_image_width; y++) {
+        for (int32_t x = 0; x < ctx->new_image_height; x++) {
+            int32_t index = vec_to_img(ctx, (Vector2I){ x, y });
+
+            if (index < 0) continue;
+            Color pixel_color = get_color_from_index(ctx, index);
+
+            if (ctx->draw_ignored_pixels && compare_colors(pixel_color, ctx->ignore_color)) {
+                DrawRectangle(dst.x + x * dst_pixel_width,
+                        dst.y + y * dst_pixel_height, dst_pixel_width, dst_pixel_height, Fade(PURPLE, 0.5f));
+            }
+        }
+    }
+}
+
+static void draw_debug_mode(Context* ctx, Rectangle dst, float dst_pixel_width, float dst_pixel_height) {
+    Font font = GetFontDefault();
+    float font_size = 2.0f;
+
+    for (int32_t x = 0; x < ctx->new_image_width; x++) {
+        float px = dst.x + x * dst_pixel_width;
+        DrawLine(px, dst.y, px, dst.y + dst.height, RAYWHITE);
+
+        if (x % 5 == 0) {
+            DrawTextEx(font, TextFormat("%d", x), (Vector2){ px + 1.0f, dst.y - font_size - 2.0f }, font_size, 1.0f, RAYWHITE);
+        }
+    }
+
+    for (int32_t y = 0; y < ctx->new_image_height; y++) {
+        float py = dst.y + y * dst_pixel_height;
+        DrawLine(dst.x, py, dst.x + dst.width, py, RAYWHITE);
+
+        if (y % 5 == 0) {
+            DrawTextEx(
+                GetFontDefault(),
+                TextFormat("%d", y),
+                (Vector2){ dst.x - font_size * 1.5f, py + 1.0f },
+                font_size,
+                1.0f,
+                RAYWHITE
+            );
+        }
+    }
+}
+
 void draw_image(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     Rectangle src = {
@@ -383,29 +429,8 @@ void draw_image(Context* ctx) {
 
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
 
-    for (int32_t y = 0; y < ctx->new_image_width; y++) {
-        for (int32_t x = 0; x < ctx->new_image_height; x++) {
-            int32_t index = vec_to_img(ctx, (Vector2I){ x, y});
-
-            if (index < 0) continue;
-            Color pixel_color = get_color_from_index(ctx, index);
-
-            if (ctx->draw_ignored_pixels && compare_colors(pixel_color, ctx->ignore_color)) {
-                DrawRectangle(dst.x + x * dst_pixel_width,
-                        dst.y + y * dst_pixel_height, dst_pixel_width, dst_pixel_height, Fade(PURPLE, 0.5f));
-            }
-
-            if (ctx->debug_mode) {
-                DrawLine(0, y * dst_pixel_height, dst.width, y * dst_pixel_height, RAYWHITE);
-                DrawLine(x * dst_pixel_width, 0, x * dst_pixel_width, dst.height, RAYWHITE);
-                if (y == 0 ) DrawTextEx(GetFontDefault(), TextFormat("%d", x), (Vector2){x * dst_pixel_width + 1.0f, -5.0f}, 2.0f, 1.0f, RAYWHITE);
-            }
-        }
-        if (ctx->debug_mode) {
-            DrawTextEx(GetFontDefault(), TextFormat("%d", y), (Vector2){-5.0f, y * dst_pixel_height + 1.0f}, 2.0f, 1.0f, RAYWHITE);
-        }
-    }
-
+    if (ctx->draw_ignored_pixels) draw_ignored_pixels(ctx, dst, dst_pixel_width, dst_pixel_height);
+    if (ctx->debug_mode) draw_debug_mode(ctx, dst, dst_pixel_width, dst_pixel_height);
 
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
@@ -415,7 +440,7 @@ void update_image_data(Context* ctx) {
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         Rectangle dst = get_image_dst(ctx);
         Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
-    
+
         if (!CheckCollisionPointRec(mouse, dst)) return;
 
         if (ctx->pick_color_draw) {
