@@ -46,6 +46,7 @@ typedef struct Context {
     bool export_x_mirrored;
     bool pick_color_draw;
     bool pick_color_ignore;
+    bool draw_ignored_pixels;
     Camera2D camera;
 } Context;
 
@@ -124,10 +125,29 @@ void new_image_menu(bool* stay_open, Context* ctx) {
         Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
 
         ctx->loaded_tex = LoadTextureFromImage(img);
+
+        SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
         UnloadImage(img);
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
         ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
     }
+}
+
+static inline bool compare_colors(Color a, Color b) {
+    return (a.r == b.r &&
+            a.g == b.g &&
+            a.b == b.b &&
+            a.a == b.a);
+}
+
+/* Assumes Index is avlid */
+static inline Color get_color_from_index(Context* ctx, int32_t index) {
+    return (Color){
+        .r = ctx->image_data[index],
+        .g = ctx->image_data[index + 1],
+        .b = ctx->image_data[index + 2],
+        .a = ctx->image_data[index + 3],
+    };
 }
 
 static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
@@ -150,15 +170,70 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
             color |= g << 8;
             color |= r << 16;
 
-            if (cmp_color.r == ctx->ignore_color.r &&
-                    cmp_color.g == ctx->ignore_color.g &&
-                    cmp_color.b == ctx->ignore_color.b &&
-                    cmp_color.a == ctx->ignore_color.a) continue;
+            if (compare_colors(cmp_color, ctx->ignore_color)) continue;
 
             int32_t pos_x = x - ctx->new_image_width / 2;
             if (ctx->export_x_mirrored) pos_x *= -1;
             fprintf(fd, "Canvas.rect(%s%+d, %s%+d, 1.5, 1.5, {fill:\"#%X\"}),\n", name_x, pos_x, name_y,
                     -(y - ctx->new_image_height / 2), color);
+        }
+    }
+}
+
+static Rectangle get_image_dst(Context* ctx) {
+    Rectangle dst = {
+        .x = 0,
+        .y = 0,
+        .width = window_width * 0.8f,
+    };
+
+    dst.height = dst.width / ctx->loaded_ratio;
+
+    if (dst.height > window_height) {
+        dst.height = window_height;
+        dst.width = dst.height * ctx->loaded_ratio;
+    }
+
+    return dst;
+}
+
+static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
+    float u = (vec.x - dst.x) / dst.width;
+    float v = (vec.y - dst.y) / dst.height;
+
+    u = fminf(fmaxf(u, 0.0f), 1.0f);
+    v = fminf(fmaxf(v, 0.0f), 1.0f);
+
+    int cx = (int32_t)floorf(u * ctx->new_image_width);
+    int cy = (int32_t)floorf(v * ctx->new_image_height);
+    return (Vector2I){cx, cy};
+}
+
+static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
+    if (vec.x < 0 || vec.y < 0 ||
+        vec.x >= ctx->new_image_width ||
+        vec.y >= ctx->new_image_height)
+        return -1;
+
+    return (vec.y * ctx->new_image_width + vec.x) * 4;
+}
+
+static void draw_ignored_pixels(Context* ctx) {
+    Rectangle dst = get_image_dst(ctx);
+    float dst_pixel_width = dst.width / (float)ctx->new_image_width;
+    float dst_pixel_height = dst.height / (float)ctx->new_image_height;
+
+    for (int32_t x = 0; x < ctx->new_image_width; x++) {
+        for (int32_t y = 0; y < ctx->new_image_height; y++) {
+            int32_t index = vec_to_img(ctx, (Vector2I){ x, y});
+
+            if (index < 0) continue;
+            Color pixel_color = get_color_from_index(ctx, index);
+
+            if (compare_colors(pixel_color, ctx->ignore_color)) {
+                DrawRectangle(dst.x + x * dst_pixel_width,
+                              dst.y + y * dst_pixel_height, dst_pixel_width, dst_pixel_height, Fade(PURPLE, 0.5f));
+            }
         }
     }
 }
@@ -170,8 +245,8 @@ void draw_ui(Context* ctx) {
         .width = window_width * 0.2f,
         .height = window_height,
         .padding_x = ui_info.width * 0.1f,
-        .padding_y = window_height * 0.05f,
-        .element_height = window_height * 0.1f,
+        .padding_y = window_height * 0.03f,
+        .element_height = window_height * 0.08f,
     };
     DrawRectangle(ui_info.start_x, 0, ui_info.width, window_height, DARKGRAY);
     
@@ -203,6 +278,9 @@ void draw_ui(Context* ctx) {
                     Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
 
                     ctx->loaded_tex = LoadTextureFromImage(img);
+
+                    SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
+
                     UnloadImage(img);
                     UpdateTexture(ctx->loaded_tex, ctx->image_data);
                     ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
@@ -228,6 +306,8 @@ void draw_ui(Context* ctx) {
             if (uiButton(NULL, "Pick Color")) {
                 ctx->pick_color_ignore = true;
             }
+
+            uiCheckBox(NULL, "Show Ignored Pixels", &ctx->draw_ignored_pixels);
 
             if (uiButton(NULL, "Export Tab")) {
                 ctx->mode = UI_MODE_EXPORT;
@@ -297,24 +377,6 @@ void draw_ui(Context* ctx) {
     uiEnd(&ui_info);
 }
 
-static Rectangle get_image_dst(Context* ctx)
-{
-    Rectangle dst = {
-        .x = 0,
-        .y = 0,
-        .width = window_width * 0.8f,
-    };
-
-    dst.height = dst.width / ctx->loaded_ratio;
-
-    if (dst.height > window_height) {
-        dst.height = window_height;
-        dst.width = dst.height * ctx->loaded_ratio;
-    }
-
-    return dst;
-}
-
 void draw_image(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     Rectangle src = {
@@ -325,28 +387,10 @@ void draw_image(Context* ctx) {
     Rectangle dst = get_image_dst(ctx);
 
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
+
+    if (ctx->draw_ignored_pixels) draw_ignored_pixels(ctx);
+
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
-}
-
-static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
-    float u = (vec.x - dst.x) / dst.width;
-    float v = (vec.y - dst.y) / dst.height;
-
-    u = fminf(fmaxf(u, 0.0f), 1.0f);
-    v = fminf(fmaxf(v, 0.0f), 1.0f);
-
-    int cx = (int32_t)floorf(u * ctx->new_image_width);
-    int cy = (int32_t)floorf(v * ctx->new_image_height);
-    return (Vector2I){cx, cy};
-}
-
-static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
-    if (vec.x < 0 || vec.y < 0 ||
-        vec.x >= ctx->new_image_width ||
-        vec.y >= ctx->new_image_height)
-        return -1;
-
-    return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
 
 void update_image_data(Context* ctx) {
@@ -360,18 +404,16 @@ void update_image_data(Context* ctx) {
         if (ctx->pick_color_draw) {
             Vector2I pos = screen_to_image_space(ctx, mouse, dst);
             int32_t index = vec_to_img(ctx, pos);
-            ctx->draw_color.r = ctx->image_data[index];
-            ctx->draw_color.g = ctx->image_data[index + 1];
-            ctx->draw_color.b = ctx->image_data[index + 2];
+            ctx->draw_color = get_color_from_index(ctx, index);
+            ctx->pick_color_draw = false;
             return;
         }
 
         if (ctx->pick_color_ignore) {
             Vector2I pos = screen_to_image_space(ctx, mouse, dst);
             int32_t index = vec_to_img(ctx, pos);
-            ctx->ignore_color.r = ctx->image_data[index];
-            ctx->ignore_color.g = ctx->image_data[index + 1];
-            ctx->ignore_color.b = ctx->image_data[index + 2];
+            ctx->ignore_color = get_color_from_index(ctx, index);
+            ctx->pick_color_ignore = false;
             return;
         }
 
