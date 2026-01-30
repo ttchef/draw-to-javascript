@@ -48,6 +48,7 @@ typedef struct Context {
     bool pick_color_ignore;
     bool draw_ignored_pixels;
     bool debug_mode;
+    bool drawing;
     Camera2D camera;
 } Context;
 
@@ -289,13 +290,13 @@ void draw_ui(Context* ctx) {
             uiSlider(NULL, "Brush Size", NULL, &ctx->brush_size, 0.5f, 50.0f);
 
             uiTextEx(NULL, "Brush Color", RAYWHITE, false);
-            uiColorPicker(NULL, "Color Picker", &ctx->draw_color);
+            uiColorPickerEx(NULL, "Color Picker", &ctx->draw_color, ctx->drawing);
             if (uiButton(NULL, "Pick Color")) {
                 ctx->pick_color_draw = true;
             }
 
             uiTextEx(NULL, "Ignore Color", RAYWHITE, false);
-            uiColorPicker(NULL, "Color Picker", &ctx->ignore_color);
+            uiColorPickerEx(NULL, "Color Picker", &ctx->ignore_color, ctx->drawing);
             if (uiButton(NULL, "Pick Color")) {
                 ctx->pick_color_ignore = true;
             }
@@ -386,30 +387,41 @@ static void draw_ignored_pixels(Context* ctx, Rectangle dst, float dst_pixel_wid
     }
 }
 
+static inline int32_t get_number_of_digits(int32_t num) {
+    int32_t res = 0;
+    while (num /= 10) res++;
+    return res;
+}
+
 static void draw_debug_mode(Context* ctx, Rectangle dst, float dst_pixel_width, float dst_pixel_height) {
     Font font = GetFontDefault();
-    float font_size = 2.0f;
+    float font_size = Clamp(fminf(dst_pixel_width, dst_pixel_height) * 0.5f, 0.6f, 10.0f);
 
     for (int32_t x = 0; x < ctx->new_image_width; x++) {
         float px = dst.x + x * dst_pixel_width;
         DrawLine(px, dst.y, px, dst.y + dst.height, RAYWHITE);
 
         if (x % 5 == 0) {
-            DrawTextEx(font, TextFormat("%d", x), (Vector2){ px + 1.0f, dst.y - font_size - 2.0f }, font_size, 1.0f, RAYWHITE);
+            DrawTextEx(font, TextFormat("%d", x), (Vector2){ px + font_size * 0.5f, dst.y - font_size },
+                    font_size, font_size * 0.5f, RAYWHITE);
         }
     }
+
+    int32_t font_width = MeasureText(TextFormat("%d", ctx->new_image_width), font_size);
 
     for (int32_t y = 0; y < ctx->new_image_height; y++) {
         float py = dst.y + y * dst_pixel_height;
         DrawLine(dst.x, py, dst.x + dst.width, py, RAYWHITE);
 
         if (y % 5 == 0) {
+            int32_t number_of_digits = get_number_of_digits(y);
+            float percent = number_of_digits / 10.0f;
             DrawTextEx(
                 GetFontDefault(),
                 TextFormat("%d", y),
-                (Vector2){ dst.x - font_size * 1.5f, py + 1.0f },
+                (Vector2){ dst.x - (font_width * percent) * 0.5f - font_size * 0.5f, py + font_size * 0.5f },
                 font_size,
-                1.0f,
+                font_size * 0.5f,
                 RAYWHITE
             );
         }
@@ -438,6 +450,11 @@ void draw_image(Context* ctx) {
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse_screen = GetMousePosition();
+        if (mouse_screen.x > window_width * 0.8f)  return;
+
+        ctx->drawing = true;
+
         Rectangle dst = get_image_dst(ctx);
         Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
 
@@ -485,6 +502,11 @@ void update_image_data(Context* ctx) {
 static void handle_input(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        ctx->drawing = false;
+        printf("Released!\n");
+    }
+
     // Panning
     if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         Vector2 delta = GetMouseDelta();

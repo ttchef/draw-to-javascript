@@ -40,6 +40,7 @@ int32_t uiButtonEx(Rectangle* bounds, const uint8_t* text, bool padding_y);
 int32_t uiSlider(Rectangle* bounds, const uint8_t* text_left, const uint8_t* text_right, float* val, float min_val, float max_val);
 int32_t uiCheckBox(Rectangle* bounds, const uint8_t* text, bool* checked);
 int32_t uiColorPicker(Rectangle* bounds, const uint8_t* text, Color* color);
+int32_t uiColorPickerEx(Rectangle* bounds, const uint8_t* text, Color* color, bool constraint);
 int32_t uiTextBox(Rectangle* bounds, uint8_t* text, int32_t text_size, bool edit_mode);
 void uiText(FontInfo* info, const uint8_t* text, Color color);
 void uiTextEx(FontInfo* info, const uint8_t* text, Color color, bool padding_y);
