@@ -49,6 +49,8 @@ typedef struct Context {
     bool draw_ignored_pixels;
     bool debug_mode;
     bool drawing;
+    Vector2 previous_mouse_pos;
+    Vector2 current_mouse_pos;
     Camera2D camera;
 } Context;
 
@@ -229,7 +231,6 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
 
     return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
-
 
 void draw_ui(Context* ctx) {
     uiInfo ui_info = {
@@ -447,6 +448,29 @@ void draw_image(Context* ctx) {
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
 
+void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
+    float radius = ctx->brush_size;
+    float radius_squared = radius * radius;
+
+    Vector2I pos_image = screen_to_image_space(ctx, pos_world, dst);
+
+    for (int32_t i = -radius; i <= radius; i++) {
+        for (int32_t j = -radius; j <= radius; j++) {
+            Vector2I pos = pos_image;
+            pos.x += i;
+            pos.y += j;
+            if (i * i + j * j <= radius_squared) {
+                int32_t index = vec_to_img(ctx, pos);
+                if (index == -1) continue;
+                ctx->image_data[index] = ctx->draw_color.r;
+                ctx->image_data[index + 1] = ctx->draw_color.g;
+                ctx->image_data[index + 2] = ctx->draw_color.b;
+                ctx->image_data[index + 3] = 255;
+            }
+        }
+    }
+}
+
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -479,21 +503,32 @@ void update_image_data(Context* ctx) {
         float radius = ctx->brush_size;
         float radius_squared = radius * radius;
 
-        for (int32_t i = -radius; i <= radius; i++) {
-            for (int32_t j = -radius; j <= radius; j++) {
-                Vector2I pos = screen_to_image_space(ctx, mouse, dst);
-                pos.x += i;
-                pos.y += j;
-                if (i * i + j * j <= radius_squared) {
-                    int32_t index = vec_to_img(ctx, pos);
-                    if (index == -1) continue;
-                    ctx->image_data[index] = ctx->draw_color.r;
-                    ctx->image_data[index + 1] = ctx->draw_color.g;
-                    ctx->image_data[index + 2] = ctx->draw_color.b;
-                    ctx->image_data[index + 3] = 255;
+        float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
+        float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
+
+        float screen_dist_squared = dx * dx + dy * dy;
+        float radius_scale = Clamp(ctx->camera.zoom / 64.0f, 0.1f, 0.5f);
+
+        if (screen_dist_squared >= radius_squared * radius_scale) {
+            /* Need for filling in */
+
+            int32_t lerp_count = screen_dist_squared / (radius_squared * radius_scale);
+            if (lerp_count > 0) {
+                Vector2 prev_world = GetScreenToWorld2D(ctx->previous_mouse_pos, ctx->camera);
+                Vector2 curr_world = GetScreenToWorld2D(ctx->current_mouse_pos, ctx->camera);
+
+                float lerp_t = 0.0f;
+                
+                for (int32_t i = 0; i <= lerp_count; i++) {
+                    lerp_t = (float)i / lerp_count;
+                    Vector2 pos_world = Vector2Lerp(prev_world, curr_world, lerp_t);
+                    draw_circle(ctx, pos_world, dst);
                 }
+                return;
             }
         }
+
+        draw_circle(ctx, mouse, dst);
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }
@@ -545,6 +580,9 @@ int main() {
     while (!WindowShouldClose()) {
         window_width = GetScreenWidth();
         window_height = GetScreenHeight();
+
+        ctx.previous_mouse_pos = ctx.current_mouse_pos;
+        ctx.current_mouse_pos = GetMousePosition();
 
         handle_input(&ctx);
         update_image_data(&ctx);
