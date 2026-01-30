@@ -44,6 +44,8 @@ typedef struct Context {
     Color ignore_color;
     float brush_size;
     bool export_x_mirrored;
+    bool pick_color_draw;
+    bool pick_color_ignore;
     Camera2D camera;
 } Context;
 
@@ -168,7 +170,7 @@ void draw_ui(Context* ctx) {
         .width = window_width * 0.2f,
         .height = window_height,
         .padding_x = ui_info.width * 0.1f,
-        .padding_y = window_height * 0.07f,
+        .padding_y = window_height * 0.05f,
         .element_height = window_height * 0.1f,
     };
     DrawRectangle(ui_info.start_x, 0, ui_info.width, window_height, DARKGRAY);
@@ -214,9 +216,19 @@ void draw_ui(Context* ctx) {
             break;
         case UI_MODE_IMAGE_EDITING:
             uiSlider(NULL, "Brush Size", NULL, &ctx->brush_size, 0.5f, 50.0f);
+
             uiTextEx(NULL, "Brush Color", RAYWHITE, false);
             uiColorPicker(NULL, "Color Picker", &ctx->draw_color);
+            if (uiButton(NULL, "Pick Color")) {
+                ctx->pick_color_draw = true;
+            }
+
+            uiTextEx(NULL, "Ignore Color", RAYWHITE, false);
             uiColorPicker(NULL, "Color Picker", &ctx->ignore_color);
+            if (uiButton(NULL, "Pick Color")) {
+                ctx->pick_color_ignore = true;
+            }
+
             if (uiButton(NULL, "Export Tab")) {
                 ctx->mode = UI_MODE_EXPORT;
             }
@@ -344,6 +356,24 @@ void update_image_data(Context* ctx) {
         Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
     
         if (!CheckCollisionPointRec(mouse, dst)) return;
+
+        if (ctx->pick_color_draw) {
+            Vector2I pos = screen_to_image_space(ctx, mouse, dst);
+            int32_t index = vec_to_img(ctx, pos);
+            ctx->draw_color.r = ctx->image_data[index];
+            ctx->draw_color.g = ctx->image_data[index + 1];
+            ctx->draw_color.b = ctx->image_data[index + 2];
+            return;
+        }
+
+        if (ctx->pick_color_ignore) {
+            Vector2I pos = screen_to_image_space(ctx, mouse, dst);
+            int32_t index = vec_to_img(ctx, pos);
+            ctx->ignore_color.r = ctx->image_data[index];
+            ctx->ignore_color.g = ctx->image_data[index + 1];
+            ctx->ignore_color.b = ctx->image_data[index + 2];
+            return;
+        }
 
         float radius = ctx->brush_size;
         float radius_squared = radius * radius;
