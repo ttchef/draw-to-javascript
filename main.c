@@ -47,6 +47,7 @@ typedef struct Context {
     bool pick_color_draw;
     bool pick_color_ignore;
     bool draw_ignored_pixels;
+    bool debug_mode;
     Camera2D camera;
 } Context;
 
@@ -65,6 +66,15 @@ void load_from_javascript(Context* ctx) {
     }
 
     FILE* file = fopen(path, "rb");
+}
+
+static void initzialize_img_alpha(Context* ctx) {
+    for (int32_t y = 0; y < ctx->new_image_height; y++) {
+        for (int32_t x = 0; x < ctx->new_image_width; x++) {
+            int32_t index = (y * ctx->new_image_width + x) * 4;
+            ctx->image_data[index + 3] = 255; 
+        }
+    }
 }
 
 void new_image_menu(bool* stay_open, Context* ctx) {
@@ -115,6 +125,7 @@ void new_image_menu(bool* stay_open, Context* ctx) {
     if (GuiButton(bounds, "Create")) {
         ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * 4);
         memset(ctx->image_data, 0, ctx->new_image_width * ctx->new_image_height * 4);
+        initzialize_img_alpha(ctx);
         if (!ctx->image_data) {
             fprintf(stderr, "Failed to create new Image\n");
             exit(1);
@@ -218,25 +229,6 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
     return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
 
-static void draw_ignored_pixels(Context* ctx) {
-    Rectangle dst = get_image_dst(ctx);
-    float dst_pixel_width = dst.width / (float)ctx->new_image_width;
-    float dst_pixel_height = dst.height / (float)ctx->new_image_height;
-
-    for (int32_t x = 0; x < ctx->new_image_width; x++) {
-        for (int32_t y = 0; y < ctx->new_image_height; y++) {
-            int32_t index = vec_to_img(ctx, (Vector2I){ x, y});
-
-            if (index < 0) continue;
-            Color pixel_color = get_color_from_index(ctx, index);
-
-            if (compare_colors(pixel_color, ctx->ignore_color)) {
-                DrawRectangle(dst.x + x * dst_pixel_width,
-                              dst.y + y * dst_pixel_height, dst_pixel_width, dst_pixel_height, Fade(PURPLE, 0.5f));
-            }
-        }
-    }
-}
 
 void draw_ui(Context* ctx) {
     uiInfo ui_info = {
@@ -274,6 +266,7 @@ void draw_ui(Context* ctx) {
                         fprintf(stderr, "Failed to load image: %s\n", path);
                         exit(1);
                     }
+                    initzialize_img_alpha(ctx);
                     ctx->mode = UI_MODE_IMAGE_EDITING;
                     Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
 
@@ -385,10 +378,30 @@ void draw_image(Context* ctx) {
     };
 
     Rectangle dst = get_image_dst(ctx);
+    float dst_pixel_width = dst.width / (float)ctx->new_image_width;
+    float dst_pixel_height = dst.height / (float)ctx->new_image_height;
 
     DrawTexturePro(ctx->loaded_tex, src, dst, (Vector2){0, 0}, 0.0f, WHITE);
 
-    if (ctx->draw_ignored_pixels) draw_ignored_pixels(ctx);
+    for (int32_t x = 0; x < ctx->new_image_width; x++) {
+        for (int32_t y = 0; y < ctx->new_image_height; y++) {
+            int32_t index = vec_to_img(ctx, (Vector2I){ x, y});
+
+            if (index < 0) continue;
+            Color pixel_color = get_color_from_index(ctx, index);
+
+            if (ctx->draw_ignored_pixels && compare_colors(pixel_color, ctx->ignore_color)) {
+                DrawRectangle(dst.x + x * dst_pixel_width,
+                        dst.y + y * dst_pixel_height, dst_pixel_width, dst_pixel_height, Fade(PURPLE, 0.5f));
+            }
+
+            if (ctx->debug_mode) {
+                DrawLine(0, y * dst_pixel_height, dst.width, y * dst_pixel_height, RAYWHITE);
+                DrawLine(x * dst_pixel_width, 0, x * dst_pixel_width, dst.height, RAYWHITE);
+            }
+        }
+    }
+
 
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
@@ -460,6 +473,10 @@ static void handle_input(Context* ctx) {
         float scale = wheel * 0.2f;
         ctx->camera.zoom = Clamp(expf(logf(ctx->camera.zoom) + scale), 0.125f, 64.0f);
     }
+
+    if (IsKeyPressed(KEY_D)) {
+        ctx->debug_mode = !ctx->debug_mode;
+    }
 }
 
 int main() {
@@ -469,6 +486,7 @@ int main() {
     Context ctx = {0};
     ctx.mode = UI_MODE_FILE_SELECTION;
     ctx.clear_color = BLACK;
+    ctx.ignore_color = BLACK;
     ctx.draw_color = RED;
     ctx.brush_size = 2.0f;
     ctx.camera.zoom = 1.0f;
@@ -484,6 +502,8 @@ int main() {
         BeginDrawing();
         ClearBackground(ctx.clear_color);
         BeginMode2D(ctx.camera);
+
+        DrawRectangle(0, 0, window_width, window_height, BLACK); // TMP
 
         draw_image(&ctx);
         DrawText(TextFormat("FPS: %.2f", fps), 10, 10, 20, RAYWHITE);
