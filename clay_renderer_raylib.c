@@ -27,7 +27,6 @@ typedef struct
 
 typedef struct 
 {
-    int32_t borderWidth;
     Clay_Color borderColor;
 } CustomLayoutElement_RectangleLines;
 

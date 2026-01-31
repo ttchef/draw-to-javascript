@@ -35,6 +35,16 @@ const Clay_Color UI_COLOR_DARK_GRAY = (Clay_Color){80, 80, 80, 255};
 const Clay_Color UI_COLOR_DARK_DARK_GRAY = (Clay_Color){60, 60, 60, 255};
 const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
 const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
+const Clay_Color UI_COLOR_RED = (Clay_Color){255, 0, 0, 255};
+
+// Custom UI elements
+const CustomLayoutElement_RectangleLines rect = {
+    .borderColor = UI_COLOR_WHITE,
+};
+CustomLayoutElement custom_element = {
+    .type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
+    .customData.rect = rect,
+};
 
 enum uiMode {
     UI_MODE_FILE_SELECTION,
@@ -84,17 +94,8 @@ void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
 }
 
-    const CustomLayoutElement_RectangleLines rect = {
-        .borderColor = UI_COLOR_WHITE,
-        .borderWidth = 2,
-    };
-    CustomLayoutElement custom_element = {
-        .type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
-        .customData.rect = rect,
-    };
-
 void clay_button_picture_template(Clay_String text, void* image_data) {
-
+    custom_element.customData.rect.borderColor = UI_COLOR_RED;
     CLAY_AUTO_ID({
          .layout = {
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -102,6 +103,7 @@ void clay_button_picture_template(Clay_String text, void* image_data) {
             .padding = CLAY_PADDING_ALL(6),
             .childGap = 12,
          },
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
         .custom = {
             .customData = &custom_element,
         },
