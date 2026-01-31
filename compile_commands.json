@@ -1,28 +1,46 @@
 [
   {
+    "file": "main.c",
     "arguments": [
-      "/usr/bin/x86_64-w64-mingw32-gcc",
-      "-c",
-      "-Iraylib/include",
+      "gcc",
+      "main.c",
       "-o",
-      "main.exe",
-      "main.c"
+      "main.exe"
     ],
-    "directory": "/home/ttchef/coding/draw-to-javascript",
-    "file": "/home/ttchef/coding/draw-to-javascript/main.c",
-    "output": "/home/ttchef/coding/draw-to-javascript/main.exe"
+    "directory": "/home/ttchef/coding/c/draw-to-javascript",
+    "output": "main.exe"
   },
   {
+    "file": "ui.c",
     "arguments": [
-      "/usr/bin/x86_64-w64-mingw32-gcc",
-      "-c",
-      "-Iraylib/include",
+      "gcc",
+      "ui.c",
       "-o",
-      "main.exe",
-      "libtinyfiledialogs/tinyfiledialogs.c"
+      "main.exe"
     ],
-    "directory": "/home/ttchef/coding/draw-to-javascript",
-    "file": "/home/ttchef/coding/draw-to-javascript/libtinyfiledialogs/tinyfiledialogs.c",
-    "output": "/home/ttchef/coding/draw-to-javascript/main.exe"
+    "directory": "/home/ttchef/coding/c/draw-to-javascript",
+    "output": "main.exe"
+  },
+  {
+    "file": "darray.c",
+    "arguments": [
+      "gcc",
+      "darray.c",
+      "-o",
+      "main.exe"
+    ],
+    "directory": "/home/ttchef/coding/c/draw-to-javascript",
+    "output": "main.exe"
+  },
+  {
+    "file": "libtinyfiledialogs/tinyfiledialogs.c",
+    "arguments": [
+      "gcc",
+      "libtinyfiledialogs/tinyfiledialogs.c",
+      "-o",
+      "main.exe"
+    ],
+    "directory": "/home/ttchef/coding/c/draw-to-javascript",
+    "output": "main.exe"
   }
 ]

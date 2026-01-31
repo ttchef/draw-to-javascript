@@ -7,11 +7,15 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 
-//#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
+
+#define CLAY_IMPLEMENTATION
+#include "clay.h"
+#include "clay_renderer_raylib.c"
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "ui.h"
@@ -25,6 +29,12 @@
 // at this point i didnt have a ctx and i dont wanna refactor now
 int32_t window_width = 1200;
 int32_t window_height = 800;
+
+// COLORS 
+const Clay_Color UI_COLOR_DARK_GRAY = (Clay_Color){80, 80, 80, 255};
+const Clay_Color UI_COLOR_DARK_DARK_GRAY = (Clay_Color){60, 60, 60, 255};
+const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
+const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
 
 enum uiMode {
     UI_MODE_FILE_SELECTION,
@@ -69,6 +79,120 @@ typedef struct Context {
     PixelState* save_states[UNDO_COUNT];
     int32_t save_states_index;
 } Context;
+
+void handle_clay_errors(Clay_ErrorData error_data) {
+    fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
+}
+
+void clay_button_picture_template(Clay_String text, void* image_data) {
+    CLAY_AUTO_ID({
+         .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(6),
+            .childGap = 6,
+         },
+        .border = {
+            .color = UI_COLOR_WHITE,
+            .width = 2,
+        },
+    }) {
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontSize = 20,
+            .textAlignment = CLAY_TEXT_ALIGN_CENTER,
+            .fontId = 0,
+            .textColor = UI_COLOR_WHITE,
+        }));
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_FIXED(30), CLAY_SIZING_FIXED(30) },
+            },
+            .image = {
+                .imageData = image_data,
+            },
+        });
+    }
+}
+
+void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count) {
+    Clay_BeginLayout();
+
+    /* Window Container */
+    CLAY(CLAY_ID("outer_container"), {
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(12),
+            .childGap = 12,
+        },
+        .backgroundColor = UI_COLOR_BLACK,
+    }) {
+        /* Top Bar */ 
+        CLAY(CLAY_ID("top_bar"), {
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.15f) },
+                .padding = CLAY_PADDING_ALL(10),
+                .childGap = 16,
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+            },
+            .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+            .cornerRadius = { 12, 12, 12, 12 },
+        }) {
+            CLAY(CLAY_ID("utilities"), {
+                .layout = {
+                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+                    .padding = CLAY_PADDING_ALL(12),
+                    .childGap = 6,
+                    .childAlignment = CLAY_ALIGN_X_CENTER,
+                },
+                .backgroundColor = UI_COLOR_DARK_GRAY,
+                .cornerRadius = { 12, 12, 12, 12 },
+            }) {
+                clay_button_picture_template(CLAY_STRING("Files"), &textures[0]);
+                clay_button_picture_template(CLAY_STRING("Export"), &textures[1]);
+                clay_button_picture_template(CLAY_STRING("Save"), &textures[2]);
+            }
+
+            CLAY(CLAY_ID("tools"), {
+                .layout = {
+                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+                },
+                .backgroundColor = UI_COLOR_DARK_GRAY,
+                .cornerRadius = { 12, 12, 12, 12 },
+            }) {
+         
+            }
+
+            CLAY(CLAY_ID("tool_settings"), {
+                .layout = {
+                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+                },
+                .backgroundColor = UI_COLOR_DARK_GRAY,
+                .cornerRadius = { 12, 12, 12, 12 },
+            }) {
+         
+            }
+        }
+
+        /* Button Part */ 
+        CLAY(CLAY_ID("bottom_part"), {
+            .layout = { 
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.85f) },
+                .padding = CLAY_PADDING_ALL(0),
+                .childGap = 32,
+            },
+         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+         .cornerRadius = { 12, 12, 12, 12 },
+        }) {
+    
+        }
+    }
+}
 
 void load_from_javascript(Context* ctx) {
     const char* filters[] = { "*.txt" };
@@ -171,7 +295,7 @@ static inline bool compare_colors(Color a, Color b) {
             a.a == b.a);
 }
 
-/* Assumes Index is avlid */
+/* Assumes Index is valid */
 static inline Color get_color_from_index(Context* ctx, int32_t index) {
     return (Color){
         .r = ctx->image_data[index],
@@ -600,8 +724,23 @@ static void handle_input(Context* ctx) {
 }
 
 int main() {
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT);
-    InitWindow(window_width, window_height, "Draw to javascirpt");
+    uint64_t total_mem = Clay_MinMemorySize();
+    Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(total_mem, malloc(total_mem));
+    Clay_Initialize(arena, (Clay_Dimensions){1200, 800}, (Clay_ErrorHandler){handle_clay_errors});
+    Clay_Raylib_Initialize(window_width, window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE);
+    SetWindowMinSize(800, 600);
+
+    size_t font_count = 1;
+    Font fonts[1] = {
+        LoadFont("res/fonts/AdwaitaSans-Regular.ttf"),
+    };
+    Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
+
+    Texture2D ui_images[] = {
+        LoadTexture("res/images/document.png"),
+        LoadTexture("res/images/export.png"),
+        LoadTexture("res/images/save.png"),
+    };
 
     Context ctx = {0};
     ctx.mode = UI_MODE_FILE_SELECTION;
@@ -632,11 +771,17 @@ int main() {
         DrawFPS(10, 10);
 
         EndMode2D();
-        draw_ui(&ctx);
+
+        Clay_SetLayoutDimensions((Clay_Dimensions){window_width, window_height});
+
+        compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
+        Clay_RenderCommandArray cmd_array = Clay_EndLayout();
+        Clay_Raylib_Render(cmd_array, fonts);
+        //draw_ui(&ctx);
         EndDrawing();
     }
 
-    CloseWindow();
+    Clay_Raylib_Close();
     return 0;
 }
 
