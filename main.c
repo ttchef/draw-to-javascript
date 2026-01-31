@@ -84,28 +84,37 @@ void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
 }
 
+    const CustomLayoutElement_RectangleLines rect = {
+        .borderColor = UI_COLOR_WHITE,
+        .borderWidth = 2,
+    };
+    CustomLayoutElement custom_element = {
+        .type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
+        .customData.rect = rect,
+    };
+
 void clay_button_picture_template(Clay_String text, void* image_data) {
+
     CLAY_AUTO_ID({
          .layout = {
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
             .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
             .padding = CLAY_PADDING_ALL(6),
-            .childGap = 6,
+            .childGap = 12,
          },
-        .border = {
-            .color = UI_COLOR_WHITE,
-            .width = 2,
+        .custom = {
+            .customData = &custom_element,
         },
     }) {
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
-            .fontSize = 20,
+            .fontSize = 30,
             .textAlignment = CLAY_TEXT_ALIGN_CENTER,
             .fontId = 0,
             .textColor = UI_COLOR_WHITE,
         }));
         CLAY_AUTO_ID({
             .layout = {
-                .sizing = { CLAY_SIZING_FIXED(30), CLAY_SIZING_FIXED(30) },
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
             },
             .image = {
                 .imageData = image_data,
@@ -144,8 +153,7 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
                     .layoutDirection = CLAY_LEFT_TO_RIGHT,
                     .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
                     .padding = CLAY_PADDING_ALL(12),
-                    .childGap = 6,
-                    .childAlignment = CLAY_ALIGN_X_CENTER,
+                    .childGap = 12,
                 },
                 .backgroundColor = UI_COLOR_DARK_GRAY,
                 .cornerRadius = { 12, 12, 12, 12 },

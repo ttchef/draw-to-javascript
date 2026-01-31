@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "clay.h"
 
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
 #define CLAY_COLOR_TO_RAYLIB_COLOR(color) (Color) { .r = (unsigned char)roundf(color.r), .g = (unsigned char)roundf(color.g), .b = (unsigned char)roundf(color.b), .a = (unsigned char)roundf(color.a) }
@@ -12,7 +13,8 @@ Camera Raylib_camera;
 
 typedef enum
 {
-    CUSTOM_LAYOUT_ELEMENT_TYPE_3D_MODEL
+    CUSTOM_LAYOUT_ELEMENT_TYPE_3D_MODEL,
+    CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
 } CustomLayoutElementType;
 
 typedef struct
@@ -23,11 +25,18 @@ typedef struct
     Matrix rotation;
 } CustomLayoutElement_3DModel;
 
+typedef struct 
+{
+    int32_t borderWidth;
+    Clay_Color borderColor;
+} CustomLayoutElement_RectangleLines;
+
 typedef struct
 {
     CustomLayoutElementType type;
     union {
         CustomLayoutElement_3DModel model;
+        CustomLayoutElement_RectangleLines rect;
     } customData;
 } CustomLayoutElement;
 
@@ -250,6 +259,17 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
                         BeginMode3D(Raylib_camera);
                             DrawModel(customElement->customData.model.model, positionRay.position, customElement->customData.model.scale * scaleValue, WHITE);        // Draw 3d model with texture
                         EndMode3D();
+                        break;
+                    }
+                    case CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES: {
+                        Clay_RectangleRenderData *config = &renderCommand->renderData.rectangle;
+                        if (config->cornerRadius.topLeft > 0) {
+                            float radius = (config->cornerRadius.topLeft * 2) / (float)((boundingBox.width > boundingBox.height) ? boundingBox.height : boundingBox.width);
+                            DrawRectangleRoundedLines((Rectangle) { boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height }, radius, 8, CLAY_COLOR_TO_RAYLIB_COLOR(customElement->customData.rect.borderColor));
+                        } else {
+                            DrawRectangleLines(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height, CLAY_COLOR_TO_RAYLIB_COLOR(customElement->customData.rect.borderColor));
+                        }
+
                         break;
                     }
                     default: break;
