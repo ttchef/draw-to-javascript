@@ -1,4 +1,5 @@
 
+#include <dirent.h>
 #include <stdio.h>
 
 #include <raylib.h>
@@ -92,41 +93,52 @@ typedef struct Context {
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
-}
+}     
 
-void clay_button_picture_template(Clay_String text, void* image_data) {
+void clay_utilities_button(Clay_String button_text, Texture2D* image) {
     custom_element.customData.rect.borderColor = UI_COLOR_RED;
+
+    /* Outer Container for push to middle vertically */
     CLAY_AUTO_ID({
-         .layout = {
-            .layoutDirection = CLAY_LEFT_TO_RIGHT,
-            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(6),
-            .childGap = 12,
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(1.0f) },
          },
         .cornerRadius = CLAY_CORNER_RADIUS(12),
         .custom = {
             .customData = &custom_element,
         },
     }) {
-        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
-            .fontSize = 30,
-            .textAlignment = CLAY_TEXT_ALIGN_CENTER,
-            .fontId = 0,
-            .textColor = UI_COLOR_WHITE,
-        }));
+        /* Vertical push padding */
+        CLAY_AUTO_ID({ .layout = { .sizing = CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(20) }});
+        /* Actual button */
         CLAY_AUTO_ID({
             .layout = {
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                .childGap = 10,
             },
-            .image = {
-                .imageData = image_data,
-            },
-        });
+        }) {
+            CLAY_TEXT(button_text, CLAY_TEXT_CONFIG({
+                .fontId = 0,
+                .fontSize = 20,
+                .textColor = UI_COLOR_WHITE,
+            }));
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIXED(20), CLAY_SIZING_FIXED(20) },
+                 },
+                 .image = {
+                    .imageData = image,
+                 },
+            });
+        }
     }
 }
 
 void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
+    Clay_Sizing top_bar_size = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_FIXED(100) };
 
     /* Window Container */
     CLAY(CLAY_ID("outer_container"), {
@@ -142,7 +154,7 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
         CLAY(CLAY_ID("top_bar"), {
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.15f) },
+                .sizing = top_bar_size,
                 .padding = CLAY_PADDING_ALL(10),
                 .childGap = 16,
                 .childAlignment = CLAY_ALIGN_X_CENTER,
@@ -160,9 +172,9 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
                 .backgroundColor = UI_COLOR_DARK_GRAY,
                 .cornerRadius = { 12, 12, 12, 12 },
             }) {
-                clay_button_picture_template(CLAY_STRING("Files"), &textures[0]);
-                clay_button_picture_template(CLAY_STRING("Export"), &textures[1]);
-                clay_button_picture_template(CLAY_STRING("Save"), &textures[2]);
+                clay_utilities_button(CLAY_STRING("File"), &textures[0]);
+                clay_utilities_button(CLAY_STRING("Export"), &textures[1]);
+                clay_utilities_button(CLAY_STRING("Save"), &textures[2]);
             }
 
             CLAY(CLAY_ID("tools"), {
@@ -192,7 +204,7 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
         CLAY(CLAY_ID("bottom_part"), {
             .layout = { 
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.85f) },
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
                 .padding = CLAY_PADDING_ALL(0),
                 .childGap = 32,
             },
@@ -782,7 +794,9 @@ int main() {
 
         EndMode2D();
 
+        bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
         Clay_SetLayoutDimensions((Clay_Dimensions){window_width, window_height});
+        Clay_SetPointerState((Clay_Vector2){ctx.current_mouse_pos.x, ctx.current_mouse_pos.y}, is_mouse_down);
 
         compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
         Clay_RenderCommandArray cmd_array = Clay_EndLayout();
