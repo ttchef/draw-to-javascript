@@ -479,6 +479,7 @@ void compute_clay_bottom(Context* ctx) {
             .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
             .padding = CLAY_PADDING_ALL(12),
             .childGap = 32,
+            .childAlignment = CLAY_ALIGN_X_CENTER,
          },
          .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
          .cornerRadius = { 12, 12, 12, 12 },
@@ -491,10 +492,10 @@ void compute_clay_bottom(Context* ctx) {
                 .image = {
                     .imageData = &ctx->loaded_tex,
                 },
+                .aspectRatio = ctx->loaded_ratio,
             });
         }
-
-   }
+    }
 }
 
 // because of headers
