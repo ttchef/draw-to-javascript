@@ -5,9 +5,6 @@
 #include <raylib.h>
 #include <raymath.h>
 
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
-
 //#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -19,7 +16,6 @@
 #include "clay_renderer_raylib.c"
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
-#include "ui.h"
 #include "darray.h"
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
@@ -346,73 +342,6 @@ static void initzialize_img_alpha(Context* ctx) {
     }
 }
 
-void new_image_menu(bool* stay_open, Context* ctx) {
-    int32_t menu_width = window_width * 0.5f;
-    int32_t menu_height = window_height * 0.5f;
-    int32_t menu_start_x = window_width * 0.5f - menu_width * 0.5f;
-    int32_t menu_start_y = window_height * 0.5f - menu_height * 0.5f;;
-    Color color = DARKGRAY;
-    color.r -= 20;
-    color.g -= 20;
-    color.b -= 20;
-    DrawRectangle(menu_start_x, menu_start_y, menu_width, menu_height, color);
-    
-    const char* text = "New Image Menu";
-    int32_t text_width = MeasureText(text, 35);
-    DrawText(text, menu_start_x + menu_width * 0.5f - text_width * 0.5f, menu_start_y + menu_height * 0.1f, 35, RAYWHITE);
-
-    Rectangle bounds = {
-        .x = menu_start_x + menu_width * 0.33f,
-        .y = menu_start_y + menu_height * 0.4f,
-        .width = menu_width * 0.1f,
-        .height = bounds.width,
-    };
-
-    bounds.x -= bounds.width * 0.5f;
-
-    static bool new_image_width_edit_mode = false;
-    if (GuiValueBox(bounds, "Width", &ctx->new_image_width, 1, 4000, new_image_width_edit_mode)) {
-        new_image_width_edit_mode = !new_image_width_edit_mode;
-    }
-
-    bounds.x += menu_width * 0.33f;
-
-    static bool new_image_height_edit_mode = false;
-    if (GuiValueBox(bounds, "Height", &ctx->new_image_height, 1, 4000, new_image_height_edit_mode)) {
-        new_image_height_edit_mode = !new_image_height_edit_mode;
-    }
-
-    bounds.width = menu_width * 0.25f;
-    bounds.x = menu_start_x + menu_width * 0.33f - bounds.width * 0.5f;
-    bounds.y += menu_height * 0.2f;
-    if (GuiButton(bounds, "Close")) {
-        *stay_open = false;
-    }
-
-    bounds.x += menu_width * 0.33f;
-
-    if (GuiButton(bounds, "Create")) {
-        ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * 4);
-        memset(ctx->image_data, 0, ctx->new_image_width * ctx->new_image_height * 4);
-        initzialize_img_alpha(ctx);
-        if (!ctx->image_data) {
-            fprintf(stderr, "Failed to create new Image\n");
-            exit(1);
-        };
-        ctx->mode = UI_MODE_IMAGE_EDITING;
-        *stay_open = false;
-
-        Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
-
-        ctx->loaded_tex = LoadTextureFromImage(img);
-
-        SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
-        UnloadImage(img);
-        UpdateTexture(ctx->loaded_tex, ctx->image_data);
-        ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
-    }
-}
-
 static inline bool compare_colors(Color a, Color b) {
     return (a.r == b.r &&
             a.g == b.g &&
@@ -498,147 +427,6 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
         return -1;
 
     return (vec.y * ctx->new_image_width + vec.x) * 4;
-}
-
-void draw_ui(Context* ctx) {
-    uiInfo ui_info = {
-        .start_x = window_width * 0.8f,
-        .start_y = 0,
-        .width = window_width * 0.2f,
-        .height = window_height,
-        .padding_x = ui_info.width * 0.1f,
-        .padding_y = window_height * 0.03f,
-        .element_height = window_height * 0.08f,
-    };
-    DrawRectangle(ui_info.start_x, 0, ui_info.width, window_height, DARKGRAY);
-    
-    uiBegin(&ui_info);
-
-    switch (ctx->mode) {
-        case UI_MODE_FILE_SELECTION:
-            static bool image_menu = false;
-            if (uiButton(NULL, "New Image")) {;
-                image_menu = true;
-            }
-            if (uiButton(NULL, "Open Image")) {
-                const char* filters[] = { "*.png", "*.jpg", "*.jpeg" };
-                const char* path = tinyfd_openFileDialog(
-                        "Open Image",
-                        "",
-                        ARRAY_LEN(filters),
-                        filters,
-                        "Images",
-                        0);
-                if (path) {
-                    int32_t channels = 0;
-                    ctx->image_data = stbi_load(path, &ctx->new_image_width, &ctx->new_image_height, &channels, 4);
-                    if (!ctx->image_data) {
-                        fprintf(stderr, "Failed to load image: %s\n", path);
-                        exit(1);
-                    }
-                    initzialize_img_alpha(ctx);
-                    ctx->mode = UI_MODE_IMAGE_EDITING;
-                    Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
-
-                    ctx->loaded_tex = LoadTextureFromImage(img);
-
-                    SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
-
-                    UnloadImage(img);
-                    UpdateTexture(ctx->loaded_tex, ctx->image_data);
-                    ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
-                }
-                else {
-                    fprintf(stderr, "Failed selecting a file!\n");
-                }
-            }
-            uiButton(NULL, "Open Javascript");
-            if (image_menu) new_image_menu(&image_menu, ctx);
-            break;
-        case UI_MODE_IMAGE_EDITING:
-            uiSlider(NULL, "Brush Size", NULL, &ctx->brush_size, 0.5f, 50.0f);
-
-            uiTextEx(NULL, "Brush Color", RAYWHITE, false);
-            uiColorPickerEx(NULL, "Color Picker", &ctx->draw_color, ctx->drawing);
-            if (uiButton(NULL, "Pick Color")) {
-                ctx->pick_color_draw = true;
-            }
-
-            uiTextEx(NULL, "Ignore Color", RAYWHITE, false);
-            uiColorPickerEx(NULL, "Color Picker", &ctx->ignore_color, ctx->drawing);
-            if (uiButton(NULL, "Pick Color")) {
-                ctx->pick_color_ignore = true;
-            }
-
-            uiCheckBox(NULL, "Show Ignored Pixels", &ctx->draw_ignored_pixels);
-
-            if (uiButton(NULL, "Export Tab")) {
-                ctx->mode = UI_MODE_EXPORT;
-            }
-            break;
-        case UI_MODE_EXPORT:
-            if (uiButton(NULL, "Image Editing")) {
-                ctx->mode = UI_MODE_IMAGE_EDITING;
-            }
-
-            static bool text_box_pos_x_edit_mode = false;
-            size_t text_box_pos_x_size = 256;
-            static char text_box_pos_x_input[256];
-            if (uiTextBox(NULL, text_box_pos_x_input, text_box_pos_x_size, text_box_pos_x_edit_mode)) {
-                text_box_pos_x_edit_mode = !text_box_pos_x_edit_mode;
-            }
-
-            static bool text_box_pos_y_edit_mode = false;
-            size_t text_box_pos_y_size = 256;
-            static char text_box_pos_y_input[256];
-            if (uiTextBox(NULL, text_box_pos_y_input, text_box_pos_y_size, text_box_pos_y_edit_mode)) {
-                text_box_pos_y_edit_mode = !text_box_pos_y_edit_mode;
-            }
-
-            uiCheckBox(NULL, "Gespiegelt X", &ctx->export_x_mirrored);
-            uiCheckBox(NULL, "One Line", &ctx->export_one_line);
-            uiSlider(NULL, "Scale", NULL, &ctx->export_scale, 0.1f, 5.0f);
-
-            if (uiButton(NULL, "Export to Javascript")) {
-                const char* filters[] = { "*.txt", "*.js" };
-                const char* path = tinyfd_saveFileDialog(
-                    "",
-                    "",
-                    ARRAY_LEN(filters),
-                    filters,
-                    "Text or Js files");
-                if (!path) {
-                    fprintf(stderr, "Failed saving file!\n");
-                    uiEnd(&ui_info);
-                    return;
-                }
-                FILE* file = fopen(path, "wb");
-                if (!file) {
-                    fprintf(stderr, "Failed to open file: %s\n", path);
-                    uiEnd(&ui_info);
-                }
-                image_to_javascript(ctx, file, text_box_pos_x_input, text_box_pos_y_input);
-                fclose(file);
-            }
-            if (uiButton(NULL, "Export to Image")) {
-                const char* filters[] = { "*.txt", "*.js" };
-                const char* path = tinyfd_saveFileDialog(
-                        "",
-                        "",
-                        ARRAY_LEN(filters),
-                        filters,
-                        "Image Files");
-                if (!path) {
-                    fprintf(stderr, "Failed saving file!\n");
-                    uiEnd(&ui_info);
-                    return;
-                }
-                stbi_write_png(path, ctx->new_image_width, ctx->new_image_height, 4, ctx->image_data, ctx->new_image_width * 4);
-            }
-            break;
-    };
-
-    uiEnd(&ui_info);
 }
 
 static void draw_ignored_pixels(Context* ctx, Rectangle dst, float dst_pixel_width, float dst_pixel_height) {
