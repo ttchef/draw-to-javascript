@@ -133,7 +133,21 @@ void clay_number_input_box(Clay_String text) {
     }
 }
 
-void clay_image_menu_button(Clay_String button_text) {
+void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    uiState* state = &((Context*)user_data)->ui_state;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        state->new_image_menu = false;
+    }
+}
+
+void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->mode = UI_MODE_IMAGE_EDITING;
+    }
+}
+
+void clay_image_menu_button(Clay_String button_text, PFN_onHover on_hover_func, void* user_data) {
     CLAY_AUTO_ID({
         .layout = {
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -144,6 +158,7 @@ void clay_image_menu_button(Clay_String button_text) {
         .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        Clay_OnHover(on_hover_func, user_data);
         CLAY_TEXT(button_text, CLAY_TEXT_CONFIG({
             .fontId = 0,
             .fontSize = 20,
@@ -208,8 +223,8 @@ void compute_clay_new_image_menu(Context* ctx) {
                 .childGap = 200,
             },
         }) {
-            clay_image_menu_button(CLAY_STRING("Close"));
-            clay_image_menu_button(CLAY_STRING("Create"));
+            clay_image_menu_button(CLAY_STRING("Close"), image_menu_close_on_hover, ctx);
+            clay_image_menu_button(CLAY_STRING("Create"), image_menu_create_on_hover, ctx);
         }
     }
 }
