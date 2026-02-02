@@ -31,6 +31,8 @@ typedef struct PixelState {
 
 typedef struct uiState {
     bool new_image_menu;
+    bool image_menu_floating;
+    Vector2I image_menu_pos;
     bool image_menu_width_input;
     bool image_menu_height_input;
     int32_t image_menu_width_index;

@@ -111,9 +111,12 @@ void compute_clay_utilities_dropdown_menu_item(Clay_String text, PFN_onHover on_
 }
 
 void utilities_new_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
-    uiState* state = &((Context*)user_data)->ui_state;
+    Context* ctx = (Context*)user_data;
+    uiState* state = &ctx->ui_state;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         state->new_image_menu = true;
+        state->image_menu_pos.x = ctx->window_width / 2 - 400;
+        state->image_menu_pos.y = ctx->window_height / 2 - 225;
     }
 }
 
@@ -245,13 +248,20 @@ void clay_image_menu_button(Clay_String button_text, PFN_onHover on_hover_func, 
     }
 }
 
+void new_image_menu_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.image_menu_floating = true;
+    }
+}
+
 void compute_clay_new_image_menu(Context* ctx) {
     CLAY(CLAY_ID("new_image_menu"), {
         .floating = {
             .attachTo = CLAY_ATTACH_TO_ROOT,
             .offset = {
-                .x = ctx->window_width / 2 - 400,
-                .y = ctx->window_height / 2 - 225,
+                .x = ctx->ui_state.image_menu_pos.x,
+                .y = ctx->ui_state.image_menu_pos.y,
             },
         },
         .layout = {
@@ -272,6 +282,7 @@ void compute_clay_new_image_menu(Context* ctx) {
             .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
             .cornerRadius = CLAY_CORNER_RADIUS(12),
         }) {
+            Clay_OnHover(new_image_menu_on_hover, ctx);
             CLAY_TEXT(CLAY_STRING("New Image"), CLAY_TEXT_CONFIG({
                 .fontId = 1,
                 .fontSize = 40,
@@ -534,6 +545,19 @@ void update_ui(struct Context *ctx) {
             state->image_menu_height_input = false;
             check_input_number(state->image_height);
         }
+    }
+
+    /* Floating New Image Menu */ 
+    if (is_mouse_down && ctx->ui_state.image_menu_floating) {
+        float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
+        float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
+
+        ctx->ui_state.image_menu_pos.x += dx;
+        ctx->ui_state.image_menu_pos.y += dy;
+    }
+
+    if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
+        ctx->ui_state.image_menu_floating = false;
     }
 }
 
