@@ -29,10 +29,12 @@ typedef struct PixelState {
 } PixelState;
 
 typedef struct uiState {
-
+    bool new_image_menu;
 } uiState;
 
 typedef struct Context {
+    int32_t window_width;
+    int32_t window_height;
     int32_t new_image_width;
     int32_t new_image_height;
     uint8_t* image_data;

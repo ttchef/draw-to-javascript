@@ -20,11 +20,6 @@
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 
-// IDC about how uncealn it is i dont want to pass them into every function
-// at this point i didnt have a ctx and i dont wanna refactor now
-int32_t window_width = 1200;
-int32_t window_height = 800;
-
 void load_from_javascript(Context* ctx) {
     const char* filters[] = { "*.txt" };
     const char* path = tinyfd_openFileDialog(
@@ -104,8 +99,8 @@ static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name
 static Rectangle get_image_dst(Context* ctx) {
     Rectangle dst = {0};
 
-    int32_t scale_x = (int32_t)(window_width * 0.8f) / ctx->new_image_width;
-    int32_t scale_y = window_height / ctx->new_image_height;
+    int32_t scale_x = (int32_t)(ctx->window_width * 0.8f) / ctx->new_image_width;
+    int32_t scale_y = ctx->window_height / ctx->new_image_height;
     int32_t scale = scale_x < scale_y ? scale_x : scale_y;
     if (scale < 1) scale = 1;
 
@@ -243,7 +238,7 @@ void update_image_data(Context* ctx) {
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         bool first_time = !ctx->drawing;
         Vector2 mouse_screen = GetMousePosition();
-        if (mouse_screen.x > window_width * 0.8f)  return;
+        if (mouse_screen.x > ctx->window_width * 0.8f)  return;
 
         ctx->drawing = true;
 
@@ -347,15 +342,17 @@ static void handle_input(Context* ctx) {
 }
 
 int main() {
+    Context ctx = { .window_width = 1200, .window_height = 800 };
+
     uint64_t total_mem = Clay_MinMemorySize();
     Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(total_mem, malloc(total_mem));
-    Clay_Initialize(arena, (Clay_Dimensions){1200, 800}, (Clay_ErrorHandler){handle_clay_errors});
-    Clay_Raylib_Initialize(window_width, window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE);
+    Clay_Initialize(arena, (Clay_Dimensions){ctx.window_width, ctx.window_height}, (Clay_ErrorHandler){handle_clay_errors});
+    Clay_Raylib_Initialize(ctx.window_width, ctx.window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE);
     SetWindowMinSize(800, 600);
 
-    size_t font_count = 1;
-    Font fonts[1] = {
+    Font fonts[2] = {
         LoadFontEx("res/fonts/AdwaitaSans-Regular.ttf", 20, 0, 250),
+        LoadFontEx("res/fonts/AdwaitaSans-Regular.ttf", 40, 0, 250),
     };
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
@@ -365,7 +362,6 @@ int main() {
         LoadTexture("res/images/save.png"),
     };
 
-    Context ctx = {0};
     ctx.mode = UI_MODE_FILE_SELECTION;
     ctx.clear_color = BLACK;
     ctx.ignore_color = BLACK;
@@ -375,8 +371,8 @@ int main() {
     ctx.export_scale = 1.0f;
 
     while (!WindowShouldClose()) {
-        window_width = GetScreenWidth();
-        window_height = GetScreenHeight();
+        ctx.window_width = GetScreenWidth();
+        ctx.window_height = GetScreenHeight();
 
         ctx.previous_mouse_pos = ctx.current_mouse_pos;
         ctx.current_mouse_pos = GetMousePosition();
@@ -388,7 +384,7 @@ int main() {
         ClearBackground(ctx.clear_color);
         BeginMode2D(ctx.camera);
 
-        DrawRectangle(0, 0, window_width, window_height, BLACK); // TMP
+        DrawRectangle(0, 0, ctx.window_width, ctx.window_height, BLACK); // TMP
 
         draw_image(&ctx);
         DrawFPS(10, 10);
@@ -396,7 +392,7 @@ int main() {
         EndMode2D();
 
         bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-        Clay_SetLayoutDimensions((Clay_Dimensions){window_width, window_height});
+        Clay_SetLayoutDimensions((Clay_Dimensions){ctx.window_width, ctx.window_height});
         Clay_SetPointerState((Clay_Vector2){ctx.current_mouse_pos.x, ctx.current_mouse_pos.y}, is_mouse_down);
 
         compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
