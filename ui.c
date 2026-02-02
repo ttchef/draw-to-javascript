@@ -1,8 +1,7 @@
 
 #define CLAY_IMPLEMENTATION
-#include "ui.h"
+#include "common.h"
 
-#include <raylib.h>
 #include "clay_renderer_raylib.c"
 
 typedef struct Context Context;
