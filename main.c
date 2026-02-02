@@ -35,6 +35,7 @@ int32_t window_height = 800;
 const Clay_Color UI_COLOR_LIGHT_GRAY = (Clay_Color){120, 120, 120, 255};
 const Clay_Color UI_COLOR_DARK_GRAY = (Clay_Color){80, 80, 80, 255};
 const Clay_Color UI_COLOR_DARK_DARK_GRAY = (Clay_Color){60, 60, 60, 255};
+const Clay_Color UI_COLOR_DARK_DARK_DARK_GRAY = (Clay_Color){40, 40, 40, 255};
 const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
 const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
 const Clay_Color UI_COLOR_RED = (Clay_Color){255, 0, 0, 255};
@@ -97,7 +98,6 @@ void handle_clay_errors(Clay_ErrorData error_data) {
 }     
 
 void clay_utilities_button(Clay_String button_text, Texture2D* image) {
-
     /* Outer Container for push to middle vertically */
     CLAY_AUTO_ID({
         .layout = {
@@ -135,6 +135,16 @@ void clay_utilities_button(Clay_String button_text, Texture2D* image) {
     }
 }
 
+void compute_clay_utilities_dropdown_menu_item(Clay_String text) {
+   CLAY_AUTO_ID({.layout = { .padding = CLAY_PADDING_ALL(16) } }) {
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontId = 0,
+            .fontSize = 20,
+            .textColor = { 255, 255, 255, 255 }
+        }));
+    }
+}
+
 void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_count) {
     CLAY(CLAY_ID("utilities"), {
         .layout = {
@@ -167,9 +177,38 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
         }) {
             clay_utilities_button(CLAY_STRING("Save"), &textures[2]);
         }
+
+        /* File Menu */ 
+        if ((IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("utilities_file_button")))) ||
+            Clay_PointerOver(Clay_GetElementId(CLAY_STRING("utilities_file_menu")))) {
+            CLAY(CLAY_ID("utilities_file_menu"), {
+                .floating = {
+                    .attachTo = CLAY_ATTACH_TO_PARENT,
+                    .attachPoints = {
+                        .parent = CLAY_ATTACH_POINT_LEFT_TOP,
+                    },
+                },
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                    .padding = { 0, 0, 60, 60 },
+                },
+            }) {
+                CLAY_AUTO_ID({
+                    .layout = {
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                        .sizing = { CLAY_SIZING_FIXED(200) },
+                    },
+                    .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
+                    .cornerRadius = CLAY_CORNER_RADIUS(12),
+                }) {
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("New"));
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Image"));
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Javascript"));
+                }
+            }
+        }
     }
 }
-
 
 void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
     CLAY(CLAY_ID("tools"), {
@@ -217,6 +256,21 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     }
 }
 
+void compute_clay_bottom(Context* ctx) {
+    CLAY(CLAY_ID("bottom_part"), {
+        .layout = { 
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(0),
+            .childGap = 32,
+         },
+         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+         .cornerRadius = { 12, 12, 12, 12 },
+    }) {
+    
+    }
+}
+
 void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
 
@@ -231,20 +285,7 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
         .backgroundColor = UI_COLOR_BLACK,
     }) {
         compute_clay_topbar(ctx, textures, images_count);
-
-        /* Button Part */ 
-        CLAY(CLAY_ID("bottom_part"), {
-            .layout = { 
-                .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
-                .padding = CLAY_PADDING_ALL(0),
-                .childGap = 32,
-            },
-         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
-         .cornerRadius = { 12, 12, 12, 12 },
-        }) {
-    
-        }
+        compute_clay_bottom(ctx);
     }
 }
 
