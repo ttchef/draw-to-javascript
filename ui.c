@@ -106,6 +106,33 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
     }
 }
 
+void clay_number_input_box(Clay_String text) {
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+            .padding = CLAY_PADDING_ALL(12),
+            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+            .childGap = 6,
+        },
+        .backgroundColor = UI_COLOR_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
+            },
+            .backgroundColor = UI_COLOR_RED,
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+        });
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontId = 0,
+            .fontSize = 20,
+            .textColor = UI_COLOR_WHITE,
+        }));
+    }
+}
+
 void clay_image_menu_button(Clay_String button_text) {
     CLAY_AUTO_ID({
         .layout = {
@@ -162,45 +189,14 @@ void compute_clay_new_image_menu(Context* ctx) {
         CLAY_AUTO_ID({
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.2f) },
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIT(0) },
                 .padding = { 0, 0, 50, 0 },
                 .childAlignment = CLAY_ALIGN_X_CENTER,
                 .childGap = 200,
             },
         }) {
-            CLAY_AUTO_ID({
-                .layout = {
-                    .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
-                },
-                .backgroundColor = UI_COLOR_RED,
-                .cornerRadius = CLAY_CORNER_RADIUS(12),
-            });
-           CLAY_AUTO_ID({
-                .layout = {
-                    .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
-                },
-                .backgroundColor = UI_COLOR_RED,
-                .cornerRadius = CLAY_CORNER_RADIUS(12),
-            });
-        }
-
-        CLAY_AUTO_ID({
-            .layout = {
-                .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.2f) },
-                .padding = { 0, 0, 50, 0 },
-                .childAlignment = CLAY_ALIGN_X_CENTER,
-                .childGap = 220,
-            },
-        }) {
-            Clay_TextElementConfig text_config = {
-                .fontId = 0,
-                .fontSize = 20,
-                .textColor = UI_COLOR_WHITE,
-            };
-
-            CLAY_TEXT(CLAY_STRING("Width"), &text_config);
-            CLAY_TEXT(CLAY_STRING("Height"), &text_config);
+            clay_number_input_box(CLAY_STRING("Width"));
+            clay_number_input_box(CLAY_STRING("Height"));
         }
 
         CLAY_AUTO_ID({
