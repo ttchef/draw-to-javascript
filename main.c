@@ -38,15 +38,6 @@ void load_from_javascript(Context* ctx) {
     // TODO: implement...
 }
 
-static void initzialize_img_alpha(Context* ctx) {
-    for (int32_t y = 0; y < ctx->new_image_height; y++) {
-        for (int32_t x = 0; x < ctx->new_image_width; x++) {
-            int32_t index = (y * ctx->new_image_width + x) * 4;
-            ctx->image_data[index + 3] = 255; 
-        }
-    }
-}
-
 static inline bool compare_colors(Color a, Color b) {
     return (a.r == b.r &&
             a.g == b.g &&
@@ -397,6 +388,9 @@ int main() {
 
         EndDrawing();
     }
+
+    if (ctx.image_data) free(ctx.image_data);
+    UnloadTexture(ctx.loaded_tex);
 
     Clay_Raylib_Close();
     return 0;

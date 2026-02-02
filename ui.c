@@ -38,10 +38,22 @@ void handle_clay_errors(Clay_ErrorData error_data) {
 }   
 
 void check_input_number(char* number_string) {
-    if (number_string[0] > '4') {
+    if (number_string[0] >= '4') {
         number_string[0] = '4';
         for (int32_t i = 1; i < UI_MAX_INPUT_CHARACTERS; i++) {
             number_string[i] = '0';
+        }
+    }
+}
+
+void initzialize_img_alpha(Context* ctx) {
+    for (int32_t y = 0; y < ctx->new_image_height; y++) {
+        for (int32_t x = 0; x < ctx->new_image_width; x++) {
+            int32_t index = (y * ctx->new_image_width + x) * 4;
+            ctx->image_data[index] = 0;
+            ctx->image_data[index + 1] = 0;
+            ctx->image_data[index + 2] = 0;
+            ctx->image_data[index + 3] = 255; 
         }
     }
 }
@@ -180,6 +192,31 @@ void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData point
 void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        check_input_number(ctx->ui_state.image_width);
+        check_input_number(ctx->ui_state.image_height);
+        ctx->ui_state.image_menu_width_input = false;
+        ctx->ui_state.image_menu_height_input = false;
+
+        ctx->new_image_width = atoi(ctx->ui_state.image_width);
+        ctx->new_image_height = atoi(ctx->ui_state.image_height);
+
+        if (ctx->new_image_width == 0 || ctx->new_image_height == 0) return;
+
+        ctx->image_data = malloc(ctx->new_image_width * ctx->new_image_height * 4);
+        if (!ctx->image_data) {
+            fprintf(stderr, "Memory allocation failed\n");
+            return;
+        }
+
+        initzialize_img_alpha(ctx);
+        Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
+        ctx->loaded_tex = LoadTextureFromImage(img);
+        UnloadImage(img);
+
+        SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
+        UpdateTexture(ctx->loaded_tex, ctx->image_data);
+
+        ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
         ctx->mode = UI_MODE_IMAGE_EDITING;
     }
 }
