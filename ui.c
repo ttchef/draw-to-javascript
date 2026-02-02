@@ -474,42 +474,6 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     }
 }
 
-void compute_clay_bottom(Context* ctx) {
-    CustomLayoutElement_Camera2DTexture tex = {
-        .camera = ctx->camera,
-    };
-
-    texture_camera.type = CUSTOM_LAYOUT_ELEMENT_CAMERA_2D_TEXTURE;
-    texture_camera.customData.texture = tex;
-
-    CLAY(CLAY_ID("bottom_part"), {
-        .layout = { 
-            .layoutDirection = CLAY_LEFT_TO_RIGHT,
-            .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(12),
-            .childGap = 32,
-            .childAlignment = CLAY_ALIGN_X_CENTER,
-         },
-         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
-         .cornerRadius = { 12, 12, 12, 12 },
-    }) {
-        if (ctx->mode == UI_MODE_IMAGE_EDITING) {
-            CLAY(CLAY_ID("texture"), {
-                .layout = {
-                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
-                },
-                .image = {
-                    .imageData = &ctx->loaded_tex,
-                },
-                .aspectRatio = ctx->loaded_ratio,
-                .custom = {
-                    .customData = &texture_camera,
-                },
-            });
-        }
-    }
-}
-
 // because of headers
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
@@ -522,10 +486,8 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
             .padding = CLAY_PADDING_ALL(12),
             .childGap = 12,
         },
-        .backgroundColor = UI_COLOR_BLACK,
     }) {
         compute_clay_topbar(ctx, textures, images_count);
-        compute_clay_bottom(ctx);
     }
 }
 
