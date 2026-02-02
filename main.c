@@ -32,6 +32,7 @@ int32_t window_width = 1200;
 int32_t window_height = 800;
 
 // COLORS 
+const Clay_Color UI_COLOR_LIGHT_GRAY = (Clay_Color){120, 120, 120, 255};
 const Clay_Color UI_COLOR_DARK_GRAY = (Clay_Color){80, 80, 80, 255};
 const Clay_Color UI_COLOR_DARK_DARK_GRAY = (Clay_Color){60, 60, 60, 255};
 const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
@@ -96,18 +97,16 @@ void handle_clay_errors(Clay_ErrorData error_data) {
 }     
 
 void clay_utilities_button(Clay_String button_text, Texture2D* image) {
-    custom_element.customData.rect.borderColor = UI_COLOR_RED;
 
     /* Outer Container for push to middle vertically */
     CLAY_AUTO_ID({
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
-            .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(1.0f) },
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(1.0f) },
+            .childAlignment = CLAY_ALIGN_X_CENTER,
          },
         .cornerRadius = CLAY_CORNER_RADIUS(12),
-        .custom = {
-            .customData = &custom_element,
-        },
+        .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
     }) {
         /* Vertical push padding */
         CLAY_AUTO_ID({ .layout = { .sizing = CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(20) }});
@@ -136,9 +135,90 @@ void clay_utilities_button(Clay_String button_text, Texture2D* image) {
     }
 }
 
+void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_count) {
+    CLAY(CLAY_ID("utilities"), {
+        .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+            .padding = CLAY_PADDING_ALL(12),
+            .childGap = 12,
+        },
+        .backgroundColor = UI_COLOR_DARK_GRAY,
+        .cornerRadius = { 12, 12, 12, 12 },
+    }) {
+        CLAY(CLAY_ID("utilities_file_button"), {
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+        }) {
+            clay_utilities_button(CLAY_STRING("File"), &textures[0]);
+        }
+        CLAY(CLAY_ID("utilities_export_button"), {
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+        }) {
+            clay_utilities_button(CLAY_STRING("Export"), &textures[1]);
+        }
+        CLAY(CLAY_ID("utilities_save_button"), {
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+        }) {
+            clay_utilities_button(CLAY_STRING("Save"), &textures[2]);
+        }
+    }
+}
+
+
+void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
+    CLAY(CLAY_ID("tools"), {
+        .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+        },
+        .backgroundColor = UI_COLOR_DARK_GRAY,
+        .cornerRadius = { 12, 12, 12, 12 },
+    }) {
+         
+    }
+}
+
+void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image_count) {
+    CLAY(CLAY_ID("tool_settings"), {
+        .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+        },
+        .backgroundColor = UI_COLOR_DARK_GRAY,
+        .cornerRadius = { 12, 12, 12, 12 },
+    }) {
+         
+    }
+}
+
+void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
+    Clay_Sizing top_bar_size = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_FIXED(100) };
+
+    CLAY(CLAY_ID("top_bar"), {
+        .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = top_bar_size,
+            .padding = CLAY_PADDING_ALL(10),
+            .childGap = 16,
+            .childAlignment = CLAY_ALIGN_X_CENTER,
+        },
+        .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+        .cornerRadius = { 12, 12, 12, 12 },
+    }) {
+        compute_clay_utilities(ctx, textures, image_count);
+        compute_clay_tools(ctx, textures, image_count);
+        compute_clay_tools_settings(ctx, textures, image_count);
+    }
+}
+
 void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
-    Clay_Sizing top_bar_size = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_FIXED(100) };
 
     /* Window Container */
     CLAY(CLAY_ID("outer_container"), {
@@ -150,55 +230,7 @@ void compute_clay_layout(Context* ctx, Texture2D* textures, size_t images_count)
         },
         .backgroundColor = UI_COLOR_BLACK,
     }) {
-        /* Top Bar */ 
-        CLAY(CLAY_ID("top_bar"), {
-            .layout = {
-                .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = top_bar_size,
-                .padding = CLAY_PADDING_ALL(10),
-                .childGap = 16,
-                .childAlignment = CLAY_ALIGN_X_CENTER,
-            },
-            .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
-            .cornerRadius = { 12, 12, 12, 12 },
-        }) {
-            CLAY(CLAY_ID("utilities"), {
-                .layout = {
-                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
-                    .padding = CLAY_PADDING_ALL(12),
-                    .childGap = 12,
-                },
-                .backgroundColor = UI_COLOR_DARK_GRAY,
-                .cornerRadius = { 12, 12, 12, 12 },
-            }) {
-                clay_utilities_button(CLAY_STRING("File"), &textures[0]);
-                clay_utilities_button(CLAY_STRING("Export"), &textures[1]);
-                clay_utilities_button(CLAY_STRING("Save"), &textures[2]);
-            }
-
-            CLAY(CLAY_ID("tools"), {
-                .layout = {
-                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
-                },
-                .backgroundColor = UI_COLOR_DARK_GRAY,
-                .cornerRadius = { 12, 12, 12, 12 },
-            }) {
-         
-            }
-
-            CLAY(CLAY_ID("tool_settings"), {
-                .layout = {
-                    .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                    .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
-                },
-                .backgroundColor = UI_COLOR_DARK_GRAY,
-                .cornerRadius = { 12, 12, 12, 12 },
-            }) {
-         
-            }
-        }
+        compute_clay_topbar(ctx, textures, images_count);
 
         /* Button Part */ 
         CLAY(CLAY_ID("bottom_part"), {
@@ -754,7 +786,7 @@ int main() {
 
     size_t font_count = 1;
     Font fonts[1] = {
-        LoadFont("res/fonts/AdwaitaSans-Regular.ttf"),
+        LoadFontEx("res/fonts/AdwaitaSans-Regular.ttf", 20, 0, 250),
     };
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
