@@ -439,16 +439,42 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
     }
 }
 
+void tools_button(Texture2D* texture) {
+    CLAY_AUTO_ID({
+        .layout = {
+            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(10),
+        },
+        .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+            .aspectRatio = (float)texture->width / (float)texture->height,
+            .image = {
+                .imageData = texture,
+            },
+        });
+    }
+}
+
 void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
     CLAY(CLAY_ID("tools"), {
         .layout = {
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
             .sizing = { CLAY_SIZING_PERCENT(0.33f), CLAY_SIZING_PERCENT(1.0f) }, 
+            .padding = CLAY_PADDING_ALL(12),
+            .childGap = 10,
         },
         .backgroundColor = UI_COLOR_DARK_GRAY,
         .cornerRadius = { 12, 12, 12, 12 },
     }) {
-
+        tools_button(&textures[3]);
+        tools_button(&textures[4]);
+        tools_button(&textures[5]);
     }
 }
 
@@ -461,12 +487,18 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
         .backgroundColor = UI_COLOR_DARK_GRAY,
         .cornerRadius = { 12, 12, 12, 12 },
     }) {
-         
+      
     }
 }
 
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
-    Clay_Sizing top_bar_size = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_FIXED(100) };
+    Clay_Sizing top_bar_size = { CLAY_SIZING_FIXED(1000), CLAY_SIZING_FIXED(100) };
+    Clay_CornerRadius corner_radius_setting = CLAY_CORNER_RADIUS(12);
+
+    if (ctx->window_width < 1000) {
+        top_bar_size.width = CLAY_SIZING_PERCENT(1.0f);
+        corner_radius_setting = CLAY_CORNER_RADIUS(0);
+    }
 
     CLAY(CLAY_ID("top_bar"), {
         .layout = {
@@ -477,7 +509,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
             .childAlignment = CLAY_ALIGN_X_CENTER,
         },
         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
-        .cornerRadius = { 12, 12, 12, 12 },
+        .cornerRadius = corner_radius_setting,
     }) {
         compute_clay_utilities(ctx, textures, image_count);
         compute_clay_tools(ctx, textures, image_count);
@@ -489,16 +521,30 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
 
+    Clay_Padding padding_setting = CLAY_PADDING_ALL(12);
+    if (ctx->window_width < 1000) {
+        padding_setting.left = 0;
+        padding_setting.right = 0;
+        padding_setting.top = 0;
+    }
+
     /* Window Container */
     CLAY(CLAY_ID("outer_container"), {
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(12),
+            .padding = padding_setting,
             .childGap = 12,
         },
     }) {
-        compute_clay_topbar(ctx, textures, images_count);
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) }, 
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+            },
+        }) {
+            compute_clay_topbar(ctx, textures, images_count);
+        }
     }
 }
 

@@ -341,6 +341,10 @@ int main() {
     Clay_Raylib_Initialize(ctx.window_width, ctx.window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE);
     SetWindowMinSize(800, 600);
 
+    Image icon = LoadImage("res/images/paint.png");
+    SetWindowIcon(icon);
+    UnloadImage(icon);
+
     Font fonts[2] = {
         LoadFontEx("res/fonts/AdwaitaSans-Regular.ttf", 20, 0, 250),
         LoadFontEx("res/fonts/AdwaitaSans-Regular.ttf", 40, 0, 250),
@@ -351,6 +355,9 @@ int main() {
         LoadTexture("res/images/document.png"),
         LoadTexture("res/images/export.png"),
         LoadTexture("res/images/save.png"),
+        LoadTexture("res/images/brush.png"),
+        LoadTexture("res/images/eraser.png"),
+        LoadTexture("res/images/paint-bucket.png"),
     };
 
     ctx.mode = UI_MODE_FILE_SELECTION;
