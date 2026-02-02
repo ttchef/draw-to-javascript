@@ -494,17 +494,20 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
     Clay_Sizing top_bar_size = { CLAY_SIZING_FIXED(1000), CLAY_SIZING_FIXED(100) };
     Clay_CornerRadius corner_radius_setting = CLAY_CORNER_RADIUS(12);
+    Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
 
-    if (ctx->window_width < 1000) {
+    if (ctx->window_width < 1050) {
         top_bar_size.width = CLAY_SIZING_PERCENT(1.0f);
+        top_bar_size.height = CLAY_SIZING_FIXED(112);
         corner_radius_setting = CLAY_CORNER_RADIUS(0);
+        padding_setting.top += 12;
     }
 
     CLAY(CLAY_ID("top_bar"), {
         .layout = {
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
             .sizing = top_bar_size,
-            .padding = CLAY_PADDING_ALL(10),
+            .padding = padding_setting,
             .childGap = 16,
             .childAlignment = CLAY_ALIGN_X_CENTER,
         },
@@ -522,7 +525,7 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
     Clay_BeginLayout();
 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(12);
-    if (ctx->window_width < 1000) {
+    if (ctx->window_width < 1050) {
         padding_setting.left = 0;
         padding_setting.right = 0;
         padding_setting.top = 0;
