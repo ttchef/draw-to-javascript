@@ -2,6 +2,7 @@
 #include "common.h"
 
 #include <string.h>
+#include <assert.h>
 
 #include <raylib.h>
 
@@ -34,7 +35,16 @@ CustomLayoutElement custom_element = {
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
-}     
+}   
+
+void check_input_number(char* number_string) {
+    if (number_string[0] > '4') {
+        number_string[0] = '4';
+        for (int32_t i = 1; i < UI_MAX_INPUT_CHARACTERS; i++) {
+            number_string[i] = '0';
+        }
+    }
+}
 
 void clay_utilities_button(Clay_String button_text, Texture2D* image) {
     /* Outer Container for push to middle vertically */
@@ -126,7 +136,6 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Colo
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
-                .padding = CLAY_PADDING_ALL(8),
             },
             .cornerRadius = CLAY_CORNER_RADIUS(12),
             .custom = {
@@ -271,6 +280,7 @@ void compute_clay_new_image_menu(Context* ctx) {
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 ctx->ui_state.image_menu_width_input = false;
+                check_input_number(ctx->ui_state.image_width);
 
                 if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("width_number_input")))) {
                     ctx->ui_state.image_menu_width_input = true;
@@ -279,6 +289,7 @@ void compute_clay_new_image_menu(Context* ctx) {
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
                 ctx->ui_state.image_menu_height_input = false;
+                check_input_number(ctx->ui_state.image_height);
 
                 if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("height_number_input")))) {
                     ctx->ui_state.image_menu_height_input = true;
@@ -478,6 +489,7 @@ void update_ui(struct Context *ctx) {
         }
         else if (c == 1) {
             state->image_menu_width_input = false;
+            check_input_number(state->image_width);
         }
     }
 
@@ -496,6 +508,7 @@ void update_ui(struct Context *ctx) {
         }
         else if (c == 1) {
             state->image_menu_height_input = false;
+            check_input_number(state->image_height);
         }
     }
 }
