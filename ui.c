@@ -570,7 +570,7 @@ void update_ui(struct Context *ctx) {
     if (ctx->ui_state.top_bar_lerp >= 1.0f) {
         ctx->ui_state.trigger_top_bar_animation_in = false;
     }
-    if (ctx->ui_state.top_bar_lerp <= 0.0f) {
+    else if (ctx->ui_state.top_bar_lerp <= 0.0f) {
         ctx->ui_state.trigger_top_bar_animation_out = false;
     }
 
