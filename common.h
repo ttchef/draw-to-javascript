@@ -9,7 +9,7 @@
 #include <raylib.h>
 
 #define UNDO_COUNT 10
-#define UI_MAX_INPUT_CHARACTERS 20
+#define UI_MAX_INPUT_CHARACTERS 4
 
 enum uiMode {
     UI_MODE_FILE_SELECTION,
@@ -35,8 +35,8 @@ typedef struct uiState {
     bool image_menu_height_input;
     int32_t image_menu_width_index;
     int32_t image_menu_height_index;
-    char image_width[UI_MAX_INPUT_CHARACTERS];
-    char image_height[UI_MAX_INPUT_CHARACTERS];
+    char image_width[UI_MAX_INPUT_CHARACTERS + 1]; /* NULL terminator */
+    char image_height[UI_MAX_INPUT_CHARACTERS + 1];
 } uiState;
 
 typedef struct Context {

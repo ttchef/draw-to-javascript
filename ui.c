@@ -1,5 +1,8 @@
 
 #include "common.h"
+
+#include <string.h>
+
 #include <raylib.h>
 
 #define CLAY_IMPLEMENTATION
@@ -237,12 +240,12 @@ void compute_clay_new_image_menu(Context* ctx) {
         }) {
             Clay_String dym_string = {
                 .chars = ctx->ui_state.image_width,
-                .length = UI_MAX_INPUT_CHARACTERS,
+                .length = strlen(ctx->ui_state.image_width),
                 .isStaticallyAllocated = true,
             };
             
             /* Only for ID */
-            CLAY(CLAY_ID("widht_number_input"), {
+            CLAY(CLAY_ID("width_number_input"), {
                 .layout = {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
                 },
@@ -253,6 +256,7 @@ void compute_clay_new_image_menu(Context* ctx) {
             }
 
             dym_string.chars = ctx->ui_state.image_height;
+            dym_string.length = strlen(ctx->ui_state.image_height);
 
             /* Only for ID */
             CLAY(CLAY_ID("height_number_input"), {
@@ -265,11 +269,20 @@ void compute_clay_new_image_menu(Context* ctx) {
                 clay_number_input_box(CLAY_STRING("Height"), dym_string, select_color);
             }
 
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("widht_number_input")))) {
-                ctx->ui_state.image_menu_width_input = true;
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                ctx->ui_state.image_menu_width_input = false;
+
+                if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("width_number_input")))) {
+                    ctx->ui_state.image_menu_width_input = true;
+                }
             }
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("height_number_input")))) {
-                ctx->ui_state.image_menu_height_input = true;
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                ctx->ui_state.image_menu_height_input = false;
+
+                if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("height_number_input")))) {
+                    ctx->ui_state.image_menu_height_input = true;
+                }
             }
         }
 
@@ -451,24 +464,38 @@ void update_ui(struct Context *ctx) {
     /* Input */
     uiState* state = &ctx->ui_state;
     if (state->image_menu_width_input) {
+        if (state->image_menu_height_input) state->image_menu_height_input = false;
+
         char c = GetKeyPressed();
 
         if (c >= 48 && c <= 57 && state->image_menu_width_index < UI_MAX_INPUT_CHARACTERS) {
-            state->image_width[state->image_menu_width_index++] = c;
+            if (!(c == 48 && state->image_menu_width_index == 0)) {
+                state->image_width[state->image_menu_width_index++] = c;
+            }
         }
         else if (c == 3 && state->image_menu_width_index > 0) {
             state->image_width[--state->image_menu_width_index] = 0;
         }
+        else if (c == 1) {
+            state->image_menu_width_input = false;
+        }
     }
 
     if (state->image_menu_height_input) {
+        if (state->image_menu_width_input) state->image_menu_width_input = false;
+
         char c = GetKeyPressed();
 
         if (c >= 48 && c <= 57 && state->image_menu_height_index < UI_MAX_INPUT_CHARACTERS) {
-            state->image_height[state->image_menu_height_index++] = c;
+            if (!(c == 48 && state->image_menu_height_index == 0)) {
+                state->image_height[state->image_menu_height_index++] = c;
+            } 
         }
         else if (c == 3 && state->image_menu_height_index > 0) {
             state->image_height[--state->image_menu_height_index] = 0;
+        }
+        else if (c == 1) {
+            state->image_menu_height_input = false;
         }
     }
 }
