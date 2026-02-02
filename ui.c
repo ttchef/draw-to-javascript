@@ -1,5 +1,6 @@
 
 #include "common.h"
+#include <raylib.h>
 
 #define CLAY_IMPLEMENTATION
 #include "clay.h"
@@ -15,6 +16,7 @@ const Clay_Color UI_COLOR_DARK_DARK_DARK_GRAY = (Clay_Color){40, 40, 40, 255};
 const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
 const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
 const Clay_Color UI_COLOR_RED = (Clay_Color){255, 0, 0, 255};
+const Clay_Color UI_COLOR_LIGHT_BLUE = (Clay_Color){54, 105, 204, 255};
 
 typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 
@@ -106,7 +108,7 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
     }
 }
 
-void clay_number_input_box(Clay_String text) {
+void clay_number_input_box(Clay_String text, Clay_String dynmaic_text) {
     CLAY_AUTO_ID({
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
@@ -121,10 +123,27 @@ void clay_number_input_box(Clay_String text) {
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
+                .padding = CLAY_PADDING_ALL(8),
             },
-            .backgroundColor = UI_COLOR_RED,
             .cornerRadius = CLAY_CORNER_RADIUS(12),
-        });
+            .custom = {
+                .customData = &custom_element,
+            },
+        }) {
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+                },
+                .backgroundColor = UI_COLOR_DARK_GRAY,
+            }) {
+                CLAY_TEXT(dynmaic_text, CLAY_TEXT_CONFIG({
+                    .fontId = 0,
+                    .fontSize = 20,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
+        }
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = 0,
             .fontSize = 20,
@@ -210,8 +229,38 @@ void compute_clay_new_image_menu(Context* ctx) {
                 .childGap = 200,
             },
         }) {
-            clay_number_input_box(CLAY_STRING("Width"));
-            clay_number_input_box(CLAY_STRING("Height"));
+            Clay_String dym_string = {
+                .chars = ctx->ui_state.image_width,
+                .length = UI_MAX_INPUT_CHARACTERS,
+                .isStaticallyAllocated = true,
+            };
+            
+            /* Only for ID */
+            CLAY(CLAY_ID("widht_number_input"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                },
+            }) {
+                clay_number_input_box(CLAY_STRING("Width"), dym_string);
+            }
+
+            dym_string.chars = ctx->ui_state.image_height;
+
+            /* Only for ID */
+            CLAY(CLAY_ID("height_number_input"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                },
+            }) {
+                clay_number_input_box(CLAY_STRING("Height"), dym_string);
+            }
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("widht_number_input")))) {
+                ctx->ui_state.image_menu_width_input = true;
+            }
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("height_number_input")))) {
+                ctx->ui_state.image_menu_height_input = true;
+            }
         }
 
         CLAY_AUTO_ID({
@@ -382,5 +431,16 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
         compute_clay_topbar(ctx, textures, images_count);
         compute_clay_bottom(ctx);
     }
+}
+
+void update_ui(struct Context *ctx) {
+    bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
+    Clay_SetPointerState((Clay_Vector2){ctx->current_mouse_pos.x, ctx->current_mouse_pos.y}, is_mouse_down);
+}
+
+void draw_ui(struct Context *ctx, Font* fonts) {
+    Clay_RenderCommandArray cmd_array = Clay_EndLayout();
+    Clay_Raylib_Render(cmd_array, fonts);
 }
 

@@ -66,6 +66,8 @@ typedef struct Context {
     uiState ui_state;
 } Context;
 
+void update_ui(struct Context* ctx);
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);
+void draw_ui(struct Context* ctx, Font* fonts);
 
 #endif // COMMON_H

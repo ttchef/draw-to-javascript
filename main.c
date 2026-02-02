@@ -379,6 +379,7 @@ int main() {
 
         handle_input(&ctx);
         update_image_data(&ctx);
+        update_ui(&ctx);
 
         BeginDrawing();
         ClearBackground(ctx.clear_color);
@@ -391,14 +392,9 @@ int main() {
 
         EndMode2D();
 
-        bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-        Clay_SetLayoutDimensions((Clay_Dimensions){ctx.window_width, ctx.window_height});
-        Clay_SetPointerState((Clay_Vector2){ctx.current_mouse_pos.x, ctx.current_mouse_pos.y}, is_mouse_down);
-
         compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
-        Clay_RenderCommandArray cmd_array = Clay_EndLayout();
-        Clay_Raylib_Render(cmd_array, fonts);
-        //draw_ui(&ctx);
+        draw_ui(&ctx, fonts);
+
         EndDrawing();
     }
 
