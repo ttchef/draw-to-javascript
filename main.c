@@ -229,7 +229,6 @@ void update_image_data(Context* ctx) {
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         bool first_time = !ctx->drawing;
         Vector2 mouse_screen = GetMousePosition();
-        if (mouse_screen.x > ctx->window_width * 0.8f)  return;
 
         ctx->drawing = true;
 
