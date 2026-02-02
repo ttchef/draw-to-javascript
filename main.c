@@ -40,6 +40,8 @@ const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
 const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
 const Clay_Color UI_COLOR_RED = (Clay_Color){255, 0, 0, 255};
 
+typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
+
 // Custom UI elements
 const CustomLayoutElement_RectangleLines rect = {
     .borderColor = UI_COLOR_WHITE,
@@ -135,7 +137,7 @@ void clay_utilities_button(Clay_String button_text, Texture2D* image) {
     }
 }
 
-void compute_clay_utilities_dropdown_menu_item(Clay_String text) {
+void compute_clay_utilities_dropdown_menu_item(Clay_String text, PFN_onHover on_hover_func) {
    CLAY_AUTO_ID({
         .layout = {
             .padding = CLAY_PADDING_ALL(16),
@@ -144,11 +146,30 @@ void compute_clay_utilities_dropdown_menu_item(Clay_String text) {
         .backgroundColor = Clay_Hovered() ? UI_COLOR_DARK_GRAY : UI_COLOR_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        Clay_OnHover(on_hover_func, NULL);
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = 0,
             .fontSize = 20,
             .textColor = { 255, 255, 255, 255 }
         }));
+    }
+}
+
+void utilities_new_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("New clicked!\n");
+    }
+}
+
+void utilities_open_image_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("Open Image clicked!\n");
+    }
+}
+
+void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("Open Javascript clicked!\n");
     }
 }
 
@@ -210,9 +231,9 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
                     .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
                     .cornerRadius = CLAY_CORNER_RADIUS(12),
                 }) {
-                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("New"));
-                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Image"));
-                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Javascript"));
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("New"), utilities_new_dropdown_item_on_hover);
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Image"), utilities_open_image_dropdown_item_on_hover);
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Javascript"), utilities_open_javascript_dropdown_item_on_hover);
                 }
             }
         }
