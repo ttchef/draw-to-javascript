@@ -10,6 +10,9 @@
 #include "clay.h"
 #include "clay_renderer_raylib.c"
 
+#define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
+#define TOP_BAR_SNAP_ANIM_TIME 1.0f /* In seconds */
+
 typedef struct Context Context;
 
 // COLORS 
@@ -496,7 +499,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     Clay_CornerRadius corner_radius_setting = CLAY_CORNER_RADIUS(12);
     Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
 
-    if (ctx->window_width < 1050) {
+    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
         top_bar_size.width = CLAY_SIZING_PERCENT(1.0f);
         top_bar_size.height = CLAY_SIZING_FIXED(112);
         corner_radius_setting = CLAY_CORNER_RADIUS(0);
@@ -525,7 +528,7 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
     Clay_BeginLayout();
 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(12);
-    if (ctx->window_width < 1050) {
+    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
         padding_setting.left = 0;
         padding_setting.right = 0;
         padding_setting.top = 0;
@@ -555,6 +558,28 @@ void update_ui(struct Context *ctx) {
     bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
     Clay_SetPointerState((Clay_Vector2){ctx->current_mouse_pos.x, ctx->current_mouse_pos.y}, is_mouse_down);
+
+    /* Top Bar Animation */
+    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
+        ctx->ui_state.trigger_top_bar_animation_in = true;
+    }
+    else {
+        ctx->ui_state.trigger_top_bar_animation_out = true;
+    }
+
+    if (ctx->ui_state.top_bar_lerp >= 1.0f) {
+        ctx->ui_state.trigger_top_bar_animation_in = false;
+    }
+    if (ctx->ui_state.top_bar_lerp <= 0.0f) {
+        ctx->ui_state.trigger_top_bar_animation_out = false;
+    }
+
+    if (ctx->ui_state.trigger_top_bar_animation_in) {
+        ctx->ui_state.top_bar_lerp += TOP_BAR_SNAP_ANIM_TIME / GetFrameTime(); 
+    }
+    if (ctx->ui_state.trigger_top_bar_animation_out) {
+        ctx->ui_state.top_bar_lerp -= TOP_BAR_SNAP_ANIM_TIME / GetFrameTime(); 
+    }
 
     /* Input */
     uiState* state = &ctx->ui_state;

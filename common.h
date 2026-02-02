@@ -39,6 +39,9 @@ typedef struct uiState {
     int32_t image_menu_height_index;
     char image_width[UI_MAX_INPUT_CHARACTERS + 1]; /* NULL terminator */
     char image_height[UI_MAX_INPUT_CHARACTERS + 1];
+    float top_bar_lerp;
+    bool trigger_top_bar_animation_in;
+    bool trigger_top_bar_animation_out;
 } uiState;
 
 typedef struct Context {
