@@ -16,7 +16,7 @@ const Clay_Color UI_COLOR_DARK_DARK_DARK_GRAY = (Clay_Color){40, 40, 40, 255};
 const Clay_Color UI_COLOR_BLACK = (Clay_Color){0, 0, 0, 255};
 const Clay_Color UI_COLOR_WHITE = (Clay_Color){255, 255, 255, 255};
 const Clay_Color UI_COLOR_RED = (Clay_Color){255, 0, 0, 255};
-const Clay_Color UI_COLOR_LIGHT_BLUE = (Clay_Color){54, 105, 204, 255};
+const Clay_Color UI_COLOR_LIGHT_BLUE = (Clay_Color){84, 145, 244, 125};
 
 typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 
@@ -108,7 +108,7 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
     }
 }
 
-void clay_number_input_box(Clay_String text, Clay_String dynmaic_text) {
+void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Color* select_color) {
     CLAY_AUTO_ID({
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
@@ -130,12 +130,18 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text) {
                 .customData = &custom_element,
             },
         }) {
+            Clay_Color background_color;
+            if (select_color) background_color = *select_color;
+            else if (Clay_Hovered()) background_color = UI_COLOR_LIGHT_GRAY;
+            else background_color = UI_COLOR_DARK_GRAY;
+
             CLAY_AUTO_ID({
                 .layout = {
                     .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
                     .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
                 },
-                .backgroundColor = UI_COLOR_DARK_GRAY,
+                .backgroundColor = background_color,
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
             }) {
                 CLAY_TEXT(dynmaic_text, CLAY_TEXT_CONFIG({
                     .fontId = 0,
@@ -241,7 +247,9 @@ void compute_clay_new_image_menu(Context* ctx) {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
                 },
             }) {
-                clay_number_input_box(CLAY_STRING("Width"), dym_string);
+                Clay_Color* select_color = NULL;
+                if (ctx->ui_state.image_menu_width_input) select_color = (Clay_Color*)&UI_COLOR_LIGHT_BLUE;
+                clay_number_input_box(CLAY_STRING("Width"), dym_string, select_color);
             }
 
             dym_string.chars = ctx->ui_state.image_height;
@@ -252,7 +260,9 @@ void compute_clay_new_image_menu(Context* ctx) {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
                 },
             }) {
-                clay_number_input_box(CLAY_STRING("Height"), dym_string);
+                Clay_Color* select_color = NULL;
+                if (ctx->ui_state.image_menu_height_input) select_color = (Clay_Color*)&UI_COLOR_LIGHT_BLUE;
+                clay_number_input_box(CLAY_STRING("Height"), dym_string, select_color);
             }
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("widht_number_input")))) {
