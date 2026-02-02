@@ -38,6 +38,7 @@ void handle_clay_errors(Clay_ErrorData error_data) {
 }   
 
 void check_input_number(char* number_string) {
+    if (strlen(number_string) != UI_MAX_INPUT_CHARACTERS) return;
     if (number_string[0] >= '4') {
         number_string[0] = '4';
         for (int32_t i = 1; i < UI_MAX_INPUT_CHARACTERS; i++) {
@@ -218,6 +219,7 @@ void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData poin
 
         ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
         ctx->mode = UI_MODE_IMAGE_EDITING;
+        ctx->ui_state.new_image_menu = false;
     }
 }
 
@@ -475,14 +477,24 @@ void compute_clay_bottom(Context* ctx) {
         .layout = { 
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
             .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_GROW(0) },
-            .padding = CLAY_PADDING_ALL(0),
+            .padding = CLAY_PADDING_ALL(12),
             .childGap = 32,
          },
          .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
          .cornerRadius = { 12, 12, 12, 12 },
     }) {
-    
-    }
+        if (ctx->mode == UI_MODE_IMAGE_EDITING) {
+            CLAY(CLAY_ID("texture"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                },
+                .image = {
+                    .imageData = &ctx->loaded_tex,
+                },
+            });
+        }
+
+   }
 }
 
 // because of headers
