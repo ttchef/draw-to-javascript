@@ -136,7 +136,14 @@ void clay_utilities_button(Clay_String button_text, Texture2D* image) {
 }
 
 void compute_clay_utilities_dropdown_menu_item(Clay_String text) {
-   CLAY_AUTO_ID({.layout = { .padding = CLAY_PADDING_ALL(16) } }) {
+   CLAY_AUTO_ID({
+        .layout = {
+            .padding = CLAY_PADDING_ALL(16),
+            .sizing = { .width = CLAY_SIZING_GROW(0) },
+        },
+        .backgroundColor = Clay_Hovered() ? UI_COLOR_DARK_GRAY : UI_COLOR_DARK_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
         CLAY_TEXT(text, CLAY_TEXT_CONFIG({
             .fontId = 0,
             .fontSize = 20,
@@ -197,6 +204,8 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
                     .layout = {
                         .layoutDirection = CLAY_TOP_TO_BOTTOM,
                         .sizing = { CLAY_SIZING_FIXED(200) },
+                        .padding = CLAY_PADDING_ALL(8),
+                        .childGap = 8,
                     },
                     .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
                     .cornerRadius = CLAY_CORNER_RADIUS(12),
