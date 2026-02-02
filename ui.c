@@ -437,6 +437,30 @@ void update_ui(struct Context *ctx) {
     bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
     Clay_SetPointerState((Clay_Vector2){ctx->current_mouse_pos.x, ctx->current_mouse_pos.y}, is_mouse_down);
+
+    /* Input */
+    uiState* state = &ctx->ui_state;
+    if (state->image_menu_width_input) {
+        char c = GetKeyPressed();
+
+        if (c >= 48 && c <= 57 && state->image_menu_width_index < UI_MAX_INPUT_CHARACTERS) {
+            state->image_width[state->image_menu_width_index++] = c;
+        }
+        else if (c == 3 && state->image_menu_width_index > 0) {
+            state->image_width[--state->image_menu_width_index] = 0;
+        }
+    }
+
+    if (state->image_menu_height_input) {
+        char c = GetKeyPressed();
+
+        if (c >= 48 && c <= 57 && state->image_menu_height_index < UI_MAX_INPUT_CHARACTERS) {
+            state->image_height[state->image_menu_height_index++] = c;
+        }
+        else if (c == 3 && state->image_menu_height_index > 0) {
+            state->image_height[--state->image_menu_height_index] = 0;
+        }
+    }
 }
 
 void draw_ui(struct Context *ctx, Font* fonts) {

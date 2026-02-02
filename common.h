@@ -33,6 +33,8 @@ typedef struct uiState {
     bool new_image_menu;
     bool image_menu_width_input;
     bool image_menu_height_input;
+    int32_t image_menu_width_index;
+    int32_t image_menu_height_index;
     char image_width[UI_MAX_INPUT_CHARACTERS];
     char image_height[UI_MAX_INPUT_CHARACTERS];
 } uiState;
