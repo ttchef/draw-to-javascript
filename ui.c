@@ -24,14 +24,9 @@ const Clay_Color UI_COLOR_LIGHT_BLUE = (Clay_Color){84, 145, 244, 125};
 
 typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 
-// Custom UI elements
-const CustomLayoutElement_RectangleLines rect = {
-    .borderColor = UI_COLOR_WHITE,
-};
-CustomLayoutElement custom_element = {
-    .type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
-    .customData.rect = rect,
-};
+/* Custom Types */
+CustomLayoutElement input_box_color;
+CustomLayoutElement texture_camera;
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
@@ -135,6 +130,13 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
 }
 
 void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Color* select_color) {
+    CustomLayoutElement_RectangleLines custom_rect = {
+        .borderColor = UI_COLOR_WHITE,
+    };
+
+    input_box_color.type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES;
+    input_box_color.customData.rect = custom_rect;
+
     CLAY_AUTO_ID({
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
@@ -152,7 +154,7 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Colo
             },
             .cornerRadius = CLAY_CORNER_RADIUS(12),
             .custom = {
-                .customData = &custom_element,
+                .customData = &input_box_color,
             },
         }) {
             Clay_Color background_color;
@@ -473,6 +475,13 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 }
 
 void compute_clay_bottom(Context* ctx) {
+    CustomLayoutElement_Camera2DTexture tex = {
+        .camera = ctx->camera,
+    };
+
+    texture_camera.type = CUSTOM_LAYOUT_ELEMENT_CAMERA_2D_TEXTURE;
+    texture_camera.customData.texture = tex;
+
     CLAY(CLAY_ID("bottom_part"), {
         .layout = { 
             .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -493,6 +502,9 @@ void compute_clay_bottom(Context* ctx) {
                     .imageData = &ctx->loaded_tex,
                 },
                 .aspectRatio = ctx->loaded_ratio,
+                .custom = {
+                    .customData = &texture_camera,
+                },
             });
         }
     }

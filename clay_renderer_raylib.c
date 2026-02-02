@@ -15,6 +15,7 @@ typedef enum
 {
     CUSTOM_LAYOUT_ELEMENT_TYPE_3D_MODEL,
     CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
+    CUSTOM_LAYOUT_ELEMENT_CAMERA_2D_TEXTURE,
 } CustomLayoutElementType;
 
 typedef struct
@@ -30,12 +31,18 @@ typedef struct
     Clay_Color borderColor;
 } CustomLayoutElement_RectangleLines;
 
+typedef struct 
+{
+    Camera2D camera;
+} CustomLayoutElement_Camera2DTexture;
+
 typedef struct
 {
     CustomLayoutElementType type;
     union {
         CustomLayoutElement_3DModel model;
         CustomLayoutElement_RectangleLines rect;
+        CustomLayoutElement_Camera2DTexture texture;
     } customData;
 } CustomLayoutElement;
 
@@ -269,6 +276,30 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
                             DrawRectangleLines(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height, CLAY_COLOR_TO_RAYLIB_COLOR(customElement->customData.rect.borderColor));
                         }
 
+                        break;
+                    }
+                    case CUSTOM_LAYOUT_ELEMENT_CAMERA_2D_TEXTURE: {
+                        CustomLayoutElement_Camera2DTexture* custom_data = (CustomLayoutElement_Camera2DTexture*)(config->customData);
+                        Camera2D camera = custom_data->camera;
+
+
+                        Texture2D imageTexture = *(Texture2D *)renderCommand->renderData.image.imageData;
+                        Clay_Color tintColor = renderCommand->renderData.image.backgroundColor;
+                        if (tintColor.r == 0 && tintColor.g == 0 && tintColor.b == 0 && tintColor.a == 0) {
+                            tintColor = (Clay_Color) { 255, 255, 255, 255 };
+                        }
+                    
+                        BeginMode2D(camera);
+
+                        DrawTexturePro(
+                            imageTexture,
+                            (Rectangle) { 0, 0, imageTexture.width, imageTexture.height },
+                            (Rectangle){boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height},
+                            (Vector2) {},
+                            0,
+                            CLAY_COLOR_TO_RAYLIB_COLOR(tintColor));
+
+                        EndMode2D();
                         break;
                     }
                     default: break;
