@@ -337,7 +337,7 @@ int main() {
     uint64_t total_mem = Clay_MinMemorySize();
     Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(total_mem, malloc(total_mem));
     Clay_Initialize(arena, (Clay_Dimensions){ctx.window_width, ctx.window_height}, (Clay_ErrorHandler){handle_clay_errors});
-    Clay_Raylib_Initialize(ctx.window_width, ctx.window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE);
+    Clay_Raylib_Initialize(ctx.window_width, ctx.window_height, "Draw to Javascript", FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
     SetWindowMinSize(800, 600);
 
     Image icon = LoadImage("res/images/paint.png");
