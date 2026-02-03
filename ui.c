@@ -166,6 +166,18 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
     }
 }
 
+void utilities_export_image_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("Export Image clicked!\n");
+    }
+}
+
+void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("Export Javascript clicked!\n");
+    }
+}
+
 void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Color* select_color) {
     CustomLayoutElement_RectangleLines custom_rect = {
         .borderColor = UI_COLOR_WHITE,
@@ -463,6 +475,40 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
                             utilities_open_image_dropdown_item_on_hover, ctx);
                     compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Javascript"),
                             utilities_open_javascript_dropdown_item_on_hover, ctx);
+                }
+            }
+        }
+
+        /* Export menu */
+        if ((IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("utilities_export_button")))) ||
+            Clay_PointerOver(Clay_GetElementId(CLAY_STRING("utilities_export_menu")))) {
+            CLAY(CLAY_ID("utilities_export_menu"), {
+                .floating = {
+                    .attachTo = CLAY_ATTACH_TO_PARENT,
+                    .attachPoints = {
+                        .parent = CLAY_ATTACH_POINT_LEFT_TOP,
+                    },
+                    .offset = { .x = 100 },
+                },
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                    .padding = { 0, 0, 60, 60 },
+                },
+            }) {
+                CLAY_AUTO_ID({
+                    .layout = {
+                        .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                        .sizing = { CLAY_SIZING_FIXED(200) },
+                        .padding = CLAY_PADDING_ALL(8),
+                        .childGap = 8,
+                    },
+                    .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
+                    .cornerRadius = CLAY_CORNER_RADIUS(12),
+                }) {
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Export Image"), 
+                            utilities_export_image_dropdown_item_on_hover, ctx);
+                    compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Export Javascript"), 
+                            utilities_export_javascript_dropdown_item_on_hover, ctx);
                 }
             }
         }
