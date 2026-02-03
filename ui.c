@@ -574,17 +574,17 @@ void tools_bucket_fill_on_hover(Clay_ElementId element_id, Clay_PointerData poin
     }
 }
 
-void tools_button(Texture2D* texture, PFN_onHover on_hover_func, void* user_data) {
+void tools_button(Context* ctx, Texture2D* texture, PFN_onHover on_hover_func, int32_t tool_id) {
     CLAY_AUTO_ID({
         .layout = {
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
             .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
             .padding = CLAY_PADDING_ALL(10),
         },
-        .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
+        .backgroundColor = ctx->ui_state.current_tool == tool_id ? UI_COLOR_WHITE : Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
-        Clay_OnHover(on_hover_func, user_data);
+        Clay_OnHover(on_hover_func, ctx);
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
@@ -608,10 +608,40 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
         .backgroundColor = UI_COLOR_DARK_GRAY,
         .cornerRadius = { 12, 12, 12, 12 },
     }) {
-        tools_button(&textures[3], tools_brush_on_hover, ctx);
-        tools_button(&textures[4], tools_eraser_on_hover, ctx);
-        tools_button(&textures[5], tools_bucket_fill_on_hover, ctx);
+        tools_button(ctx, &textures[3], tools_brush_on_hover, UI_TOOL_BRUSH);
+        tools_button(ctx, &textures[4], tools_eraser_on_hover, UI_TOOL_ERASER);
+        tools_button(ctx, &textures[5], tools_bucket_fill_on_hover, UI_TOOL_BUCKET_FILL);
     }
+}
+
+void clay_tool_settings_brush(Context* ctx) {
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            .padding = CLAY_PADDING_ALL(8),
+            .childAlignment = CLAY_ALIGN_X_CENTER,
+            .childGap = 12,
+        },
+    }) {
+        for (int32_t i = 0; i < 2; i++) {
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                },
+                .backgroundColor = UI_COLOR_RED,
+                .cornerRadius = CLAY_CORNER_RADIUS(50),
+            });
+        }   
+    }
+}
+
+void clay_tool_settings_eraser(Context* ctx) {
+
+}
+
+void clay_tool_settings_bucket_fill(Context* ctx) {
+
 }
 
 void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image_count) {
@@ -623,7 +653,19 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
         .backgroundColor = UI_COLOR_DARK_GRAY,
         .cornerRadius = { 12, 12, 12, 12 },
     }) {
-      
+        switch (ctx->ui_state.current_tool) {
+            case UI_TOOL_BRUSH:
+                clay_tool_settings_brush(ctx);
+                break;
+            case UI_TOOL_ERASER:
+                clay_tool_settings_eraser(ctx);
+                break;
+            case UI_TOOL_BUCKET_FILL:
+                clay_tool_settings_bucket_fill(ctx);
+                break;
+            default:
+                clay_tool_settings_brush(ctx);
+        }
     }
 }
 
