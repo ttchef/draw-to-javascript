@@ -288,7 +288,6 @@ void update_image_data(Context* ctx) {
                         
                     }
                 }
-                return;
             }
         }
 
@@ -359,7 +358,8 @@ int main() {
     ctx.mode = UI_MODE_FILE_SELECTION;
     ctx.clear_color = BLACK;
     ctx.ignore_color = BLACK;
-    ctx.draw_color = RED;
+    ctx.brush_color = RED;
+    ctx.draw_color = ctx.brush_color;
     ctx.brush_size = 2.0f;
     ctx.camera.zoom = 1.0f;
     ctx.export_scale = 1.0f;

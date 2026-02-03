@@ -21,6 +21,13 @@ enum uiMode {
     UI_MODE_EXPORT,
 };
 
+enum uiTool {
+    UI_TOOL_BRUSH,
+    UI_TOOL_ERASER,
+    UI_TOOL_BUCKET_FILL,
+    // TODO: UI_TOOL_COLOR_PICKER (maybe)
+};
+
 typedef struct Vector2I {
     int32_t x;
     int32_t y;
@@ -44,8 +51,7 @@ typedef struct uiState {
     char image_width[UI_MAX_INPUT_CHARACTERS + 1]; /* NULL terminator */
     char image_height[UI_MAX_INPUT_CHARACTERS + 1];
     float top_bar_lerp;
-    bool trigger_top_bar_animation_in;
-    bool trigger_top_bar_animation_out;
+    int32_t current_tool;
 } uiState;
 
 typedef struct Context {
@@ -60,6 +66,7 @@ typedef struct Context {
     Color clear_color;
     Color draw_color;
     Color ignore_color;
+    Color brush_color;
     float brush_size;
     bool export_x_mirrored;
     bool export_one_line;

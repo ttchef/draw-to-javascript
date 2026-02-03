@@ -551,7 +551,30 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
     }
 }
 
-void tools_button(Texture2D* texture) {
+void tools_brush_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.current_tool = UI_TOOL_BRUSH;
+        ctx->draw_color = ctx->brush_color;
+    }
+}
+
+void tools_eraser_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.current_tool = UI_TOOL_ERASER;
+        ctx->draw_color = ctx->ignore_color;
+    }
+}
+
+void tools_bucket_fill_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.current_tool = UI_TOOL_BUCKET_FILL;
+    }
+}
+
+void tools_button(Texture2D* texture, PFN_onHover on_hover_func, void* user_data) {
     CLAY_AUTO_ID({
         .layout = {
             .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
@@ -561,6 +584,7 @@ void tools_button(Texture2D* texture) {
         .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        Clay_OnHover(on_hover_func, user_data);
         CLAY_AUTO_ID({
             .layout = {
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
@@ -584,9 +608,9 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
         .backgroundColor = UI_COLOR_DARK_GRAY,
         .cornerRadius = { 12, 12, 12, 12 },
     }) {
-        tools_button(&textures[3]);
-        tools_button(&textures[4]);
-        tools_button(&textures[5]);
+        tools_button(&textures[3], tools_brush_on_hover, ctx);
+        tools_button(&textures[4], tools_eraser_on_hover, ctx);
+        tools_button(&textures[5], tools_bucket_fill_on_hover, ctx);
     }
 }
 
