@@ -641,7 +641,12 @@ void clay_tool_settings_brush(Context* ctx) {
                 .custom = {
                     .customData = &custom_circle[i],
                 },
-            });
+            }) {
+                if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_Hovered()) {
+                    ctx->current_brush = i;
+                    ctx->draw_color = ctx->brush_colors[i];
+                }
+            }
         }   
     }
 }
@@ -759,7 +764,7 @@ void update_ui(struct Context *ctx) {
         ctx->ui_state.top_bar_lerp -= delta;
     }
 
-    /* Clamp */
+    /* Clamp */;
     if (ctx->ui_state.top_bar_lerp > 1.0f) ctx->ui_state.top_bar_lerp = 1.0f;
     if (ctx->ui_state.top_bar_lerp < 0.0f) ctx->ui_state.top_bar_lerp = 0.0f;
 
