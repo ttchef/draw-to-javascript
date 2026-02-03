@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <math.h>
 
 #include <raylib.h>
 
@@ -76,5 +77,25 @@ typedef struct Context {
 void update_ui(struct Context* ctx);
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);
 void draw_ui(struct Context* ctx, Font* fonts);
+
+static inline float lerp(float a, float b, float t) {
+    return b * t + a * (1.0f - t);
+}
+
+static inline float ease_out_cubic(float t) {
+    return 1.0f - powf(1.0f - t, 3.0f);
+}
+
+static inline float ease_out_cubic_lerp(float a, float b, float t) {
+    return lerp(a, b, ease_out_cubic(t));
+}
+
+static inline float ease_in_out_quart(float t) {
+    return t < 0.5f ? 8 * t * t * t * t : 1.0f - powf(-2.0f * t + 2, 4.0f) * 0.5f;
+}
+
+static inline float ease_in_out_quart_lerp(float a, float b, float t) {
+    return lerp(a, b, ease_in_out_quart(t));
+}
 
 #endif // COMMON_H

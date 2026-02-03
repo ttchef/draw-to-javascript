@@ -11,7 +11,7 @@
 #include "clay_renderer_raylib.c"
 
 #define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
-#define TOP_BAR_SNAP_ANIM_TIME 1.0f /* In seconds */
+#define TOP_BAR_SNAP_ANIM_TIME 0.8f /* In seconds */
 
 typedef struct Context Context;
 
@@ -495,16 +495,20 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
 }
 
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
-    Clay_Sizing top_bar_size = { CLAY_SIZING_FIXED(1000), CLAY_SIZING_FIXED(100) };
-    Clay_CornerRadius corner_radius_setting = CLAY_CORNER_RADIUS(12);
-    Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
+    float t = ctx->ui_state.top_bar_lerp;
 
-    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
-        top_bar_size.width = CLAY_SIZING_PERCENT(1.0f);
-        top_bar_size.height = CLAY_SIZING_FIXED(112);
-        corner_radius_setting = CLAY_CORNER_RADIUS(0);
-        padding_setting.top += 12;
-    }
+    float width_px = ease_in_out_quart_lerp(1000.0f, ctx->window_width, t);
+    float height_px = ease_in_out_quart_lerp(100.0f, 112.0f, t);
+    float radius_px = ease_in_out_quart_lerp(12.0f, 0.0f, t);
+    float padding_top = ease_in_out_quart_lerp(10.0f, 22.0f, t);
+
+    Clay_Sizing top_bar_size = {
+        .width = CLAY_SIZING_FIXED(width_px),
+        .height = CLAY_SIZING_FIXED(height_px),
+    };
+
+    Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
+    padding_setting.top = padding_top;
 
     CLAY(CLAY_ID("top_bar"), {
         .layout = {
@@ -515,7 +519,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
             .childAlignment = CLAY_ALIGN_X_CENTER,
         },
         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
-        .cornerRadius = corner_radius_setting,
+        .cornerRadius = CLAY_CORNER_RADIUS(radius_px),
     }) {
         compute_clay_utilities(ctx, textures, image_count);
         compute_clay_tools(ctx, textures, image_count);
@@ -527,12 +531,11 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
 
+    float t = ctx->ui_state.top_bar_lerp;
     Clay_Padding padding_setting = CLAY_PADDING_ALL(12);
-    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
-        padding_setting.left = 0;
-        padding_setting.right = 0;
-        padding_setting.top = 0;
-    }
+    padding_setting.left = ease_in_out_quart_lerp(12.0f, 0.0f, t);
+    padding_setting.right = ease_in_out_quart_lerp(12.0f, 0.0f, t);
+    padding_setting.top = ease_in_out_quart_lerp(12.0f, 0.0f, t);
 
     /* Window Container */
     CLAY(CLAY_ID("outer_container"), {
@@ -559,27 +562,21 @@ void update_ui(struct Context *ctx) {
     Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
     Clay_SetPointerState((Clay_Vector2){ctx->current_mouse_pos.x, ctx->current_mouse_pos.y}, is_mouse_down);
 
-    /* Top Bar Animation */
-    if (ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING) {
-        ctx->ui_state.trigger_top_bar_animation_in = true;
+    float delta = (1.0f / TOP_BAR_SNAP_ANIM_TIME) * GetFrameTime();
+
+    bool merged =
+        ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING;
+
+    if (merged) {
+        ctx->ui_state.top_bar_lerp += delta;
     }
     else {
-        ctx->ui_state.trigger_top_bar_animation_out = true;
+        ctx->ui_state.top_bar_lerp -= delta;
     }
 
-    if (ctx->ui_state.top_bar_lerp >= 1.0f) {
-        ctx->ui_state.trigger_top_bar_animation_in = false;
-    }
-    else if (ctx->ui_state.top_bar_lerp <= 0.0f) {
-        ctx->ui_state.trigger_top_bar_animation_out = false;
-    }
-
-    if (ctx->ui_state.trigger_top_bar_animation_in) {
-        ctx->ui_state.top_bar_lerp += TOP_BAR_SNAP_ANIM_TIME / GetFrameTime(); 
-    }
-    if (ctx->ui_state.trigger_top_bar_animation_out) {
-        ctx->ui_state.top_bar_lerp -= TOP_BAR_SNAP_ANIM_TIME / GetFrameTime(); 
-    }
+    /* Clamp */
+    if (ctx->ui_state.top_bar_lerp > 1.0f) ctx->ui_state.top_bar_lerp = 1.0f;
+    if (ctx->ui_state.top_bar_lerp < 0.0f) ctx->ui_state.top_bar_lerp = 0.0f;
 
     /* Input */
     uiState* state = &ctx->ui_state;

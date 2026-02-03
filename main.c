@@ -332,7 +332,7 @@ static void handle_input(Context* ctx) {
 }
 
 int main() {
-    Context ctx = { .window_width = 1200, .window_height = 800 };
+    Context ctx = { .window_width = 1200, .window_height = 800, .ui_state = {0} };
 
     uint64_t total_mem = Clay_MinMemorySize();
     Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(total_mem, malloc(total_mem));
