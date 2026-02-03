@@ -615,6 +615,20 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
     }
 }
 
+void color_picker_close_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.color_picker_menu = false;
+    }
+}
+
+void color_picker_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.color_picker_menu_floating = true;
+    }
+}
+
 void compute_clay_color_picker_menu(Context* ctx) {
     CLAY(CLAY_ID("color_picker_menu"), {
         .floating = {
@@ -633,13 +647,14 @@ void compute_clay_color_picker_menu(Context* ctx) {
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
                 .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.1f) },
-                .padding = CLAY_PADDING_ALL(12),
+                .padding = { 24, 24, 12, 12 },
                 .childAlignment = CLAY_ALIGN_X_CENTER,
                 .childGap = 12,
             },
             .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
             .cornerRadius = CLAY_CORNER_RADIUS(12),
         }) {
+            Clay_OnHover(color_picker_top_bar_on_hover, ctx);
             CLAY_TEXT(CLAY_STRING("Edit Color"), CLAY_TEXT_CONFIG({
                 .fontId = 1,
                 .fontSize = 40,
@@ -655,6 +670,7 @@ void compute_clay_color_picker_menu(Context* ctx) {
                 .aspectRatio = 1,
                 .backgroundColor = UI_COLOR_RED,
             }) {
+                Clay_OnHover(color_picker_close_button_on_hover, ctx);
                 CLAY_TEXT(CLAY_STRING("X"), CLAY_TEXT_CONFIG({
                     .fontId = 1,
                     .fontSize = 40,
@@ -883,17 +899,23 @@ void update_ui(struct Context *ctx) {
         }
     }
 
-    /* Floating New Image Menu */ 
-    if (is_mouse_down && ctx->ui_state.image_menu_floating) {
+    if (is_mouse_down) {
         float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
         float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
 
-        ctx->ui_state.image_menu_pos.x += dx;
-        ctx->ui_state.image_menu_pos.y += dy;
+        if (ctx->ui_state.image_menu_floating) {
+            ctx->ui_state.image_menu_pos.x += dx;
+            ctx->ui_state.image_menu_pos.y += dy;
+        }
+        if (ctx->ui_state.color_picker_menu_floating) {
+            ctx->ui_state.color_picker_menu_pos.x += dx;
+            ctx->ui_state.color_picker_menu_pos.y += dy;
+        }
     }
-
+   
     if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
         ctx->ui_state.image_menu_floating = false;
+        ctx->ui_state.color_picker_menu_floating = false;
     }
 }
 
