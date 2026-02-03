@@ -34,7 +34,27 @@ void load_from_javascript(Context* ctx) {
     }
 
     FILE* file = fopen(path, "rb");
-    // TODO: implement...
+
+    fseek(file, 0, SEEK_END);
+    int64_t size = ftell(file);
+    rewind(file);
+
+    char buffer[size + 1];
+    fread(buffer, size, 1, file);
+    buffer[size] = '\0';
+
+    char* delim = ",({";
+    char* token = strtok(buffer, delim);
+    while (token != NULL) {
+        if (token[0] == 'C') {
+            token = strtok(NULL, delim);
+            continue;
+        }
+        printf("%s\n", token);
+        token = strtok(NULL, delim);
+    }
+
+    fclose(file);
 }
 
 static inline bool compare_colors(Color a, Color b) {

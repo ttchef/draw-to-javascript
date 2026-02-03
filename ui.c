@@ -163,8 +163,9 @@ void utilities_open_image_dropdown_item_on_hover(Clay_ElementId element_id, Clay
 }
 
 void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        printf("Open Javascript clicked!\n");
+        load_from_javascript(ctx);
     }
 }
 

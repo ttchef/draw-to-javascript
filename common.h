@@ -95,6 +95,7 @@ typedef struct Context {
 } Context;
 
 void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y);
+void load_from_javascript(Context* ctx);
 
 void update_ui(struct Context* ctx);
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);
