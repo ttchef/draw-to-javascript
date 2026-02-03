@@ -17,6 +17,8 @@
 #include "common.h"
 #include "ui.c"
 
+#define COLOR_PICKER_RESOLUTION 400
+
 void load_from_javascript(Context* ctx) {
     const char* filters[] = { "*.txt" };
     const char* path = tinyfd_openFileDialog(
@@ -50,6 +52,48 @@ static inline Color get_color_from_index(Context* ctx, int32_t index) {
         .b = ctx->image_data[index + 2],
         .a = ctx->image_data[index + 3],
     };
+}
+
+static void generate_rainbow_circle(Texture2D* result) {
+    Image img = GenImageColor(COLOR_PICKER_RESOLUTION, COLOR_PICKER_RESOLUTION, BLACK); 
+    Vector2I circle_center = {
+        .x = COLOR_PICKER_RESOLUTION * 0.5f,
+        .y = COLOR_PICKER_RESOLUTION * 0.5f,
+    };
+    int32_t radius = COLOR_PICKER_RESOLUTION * 0.5f;
+
+    for (int32_t y = 0; y < COLOR_PICKER_RESOLUTION; y++) {
+        for (int32_t x = 0; x < COLOR_PICKER_RESOLUTION; x++) {
+            int32_t dx = x - circle_center.x;
+            int32_t dy = y - circle_center.y;
+
+            int32_t idx = (y * COLOR_PICKER_RESOLUTION + x) * 4;
+            uint8_t* pix = &((uint8_t*)img.data)[idx];
+
+            int32_t dist = dx * dx + dy * dy;
+            if (dist <= radius * radius) {
+                float val = 1.0f;
+                float sat = sqrtf(dist) / radius;
+                
+                float angle = atan2f(dy, dx) * RAD2DEG;
+                if (angle < 0) angle += 360.0f;
+                angle += 180.0f;
+
+                Color c = ColorFromHSV(angle, sat, val);
+                
+                pix[0] = c.r;
+                pix[1] = c.g;
+                pix[2] = c.b;
+                pix[3] = 255;
+            }
+            else {
+                pix[3] = 0;
+            }
+        }
+    }
+
+    *result = LoadTextureFromImage(img);
+    UnloadImage(img);
 }
 
 void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
@@ -364,6 +408,8 @@ int main() {
     ctx.brush_size = 2.0f;
     ctx.camera.zoom = 1.0f;
     ctx.export_scale = 1.0f;
+
+    generate_rainbow_circle(&ctx.rainbow_circle);
 
     while (!WindowShouldClose()) {
         ctx.window_width = GetScreenWidth();

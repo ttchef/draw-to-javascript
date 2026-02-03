@@ -35,6 +35,7 @@ typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 /* Custom Types */
 CustomLayoutElement input_box_color;
 CustomLayoutElement custom_circle[BRUSH_COLORS_COUNT];
+CustomLayoutElement color_picker;
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
@@ -614,6 +615,13 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
     }
 }
 
+void tool_settings_brush_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        printf("Clicked\n");
+    }
+}
+
 void clay_tool_settings_brush(Context* ctx) {
     CLAY_AUTO_ID({
         .layout = {
@@ -647,7 +655,19 @@ void clay_tool_settings_brush(Context* ctx) {
                     ctx->draw_color = ctx->brush_colors[i];
                 }
             }
-        }   
+        }  
+
+        CLAY(CLAY_ID("color_picker"), {
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+            .image = {
+                .imageData = &ctx->rainbow_circle,
+            },
+            .aspectRatio = 1.0f,
+        }) {
+            Clay_OnHover(tool_settings_brush_on_hover, ctx);
+        }
     }
 }
 

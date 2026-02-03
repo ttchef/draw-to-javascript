@@ -84,6 +84,7 @@ typedef struct Context {
     PixelState* save_states[UNDO_COUNT];
     int32_t save_states_index;
     uiState ui_state;
+    Texture2D rainbow_circle;
 } Context;
 
 void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y);
