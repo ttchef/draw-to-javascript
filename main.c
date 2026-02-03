@@ -17,9 +17,6 @@
 #include "common.h"
 #include "ui.c"
 
-#define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
-
-
 void load_from_javascript(Context* ctx) {
     const char* filters[] = { "*.txt" };
     const char* path = tinyfd_openFileDialog(

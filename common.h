@@ -12,6 +12,8 @@
 #define UNDO_COUNT 10
 #define UI_MAX_INPUT_CHARACTERS 4
 
+#define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
+
 enum uiMode {
     UI_MODE_FILE_SELECTION,
     UI_MODE_IMAGE_EDITING,

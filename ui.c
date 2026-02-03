@@ -6,9 +6,13 @@
 
 #include <raylib.h>
 
+#include "libtinyfiledialogs/tinyfiledialogs.h"
+
 #define CLAY_IMPLEMENTATION
 #include "clay.h"
 #include "clay_renderer_raylib.c"
+
+#include "stb_image.h"
 
 #define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
 #define TOP_BAR_SNAP_ANIM_TIME 0.8f /* In seconds */
@@ -49,9 +53,6 @@ void initzialize_img_alpha(Context* ctx) {
     for (int32_t y = 0; y < ctx->new_image_height; y++) {
         for (int32_t x = 0; x < ctx->new_image_width; x++) {
             int32_t index = (y * ctx->new_image_width + x) * 4;
-            ctx->image_data[index] = 0;
-            ctx->image_data[index + 1] = 0;
-            ctx->image_data[index + 2] = 0;
             ctx->image_data[index + 3] = 255; 
         }
     }
@@ -124,8 +125,38 @@ void utilities_new_dropdown_item_on_hover(Clay_ElementId element_id, Clay_Pointe
 }
 
 void utilities_open_image_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        printf("Open Image clicked!\n");
+        const char* filters[] = { "*.png", "*.jpg", "*.jpeg" };
+        const char* path = tinyfd_openFileDialog(
+                "Open Image",
+                "",
+                ARRAY_LEN(filters),
+                filters,
+                "Images",
+                0);
+        if (!path) {
+            fprintf(stderr, "Failed to get path from file dialog!\n");
+            return;
+        }
+
+        int32_t channels;
+        ctx->image_data = stbi_load(path, &ctx->new_image_width, &ctx->new_image_height, &channels, 4);
+        if (!ctx->image_data) {
+            fprintf(stderr, "Failed to create image in memory\n");
+            return;
+        }
+        initzialize_img_alpha(ctx);
+
+        Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
+        ctx->loaded_tex = LoadTextureFromImage(img);
+        UnloadImage(img);
+
+        SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
+        UpdateTexture(ctx->loaded_tex, ctx->image_data);
+
+        ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
+        ctx->mode = UI_MODE_IMAGE_EDITING;
     }
 }
 
@@ -217,6 +248,7 @@ void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData poin
             return;
         }
 
+        memset(ctx->image_data, 0, ctx->new_image_width * ctx->new_image_height * 4);
         initzialize_img_alpha(ctx);
         Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
         ctx->loaded_tex = LoadTextureFromImage(img);
@@ -428,9 +460,9 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
                     compute_clay_utilities_dropdown_menu_item(CLAY_STRING("New"),
                             utilities_new_dropdown_item_on_hover, ctx);
                     compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Image"),
-                            utilities_open_image_dropdown_item_on_hover, NULL);
+                            utilities_open_image_dropdown_item_on_hover, ctx);
                     compute_clay_utilities_dropdown_menu_item(CLAY_STRING("Open Javascript"),
-                            utilities_open_javascript_dropdown_item_on_hover, NULL);
+                            utilities_open_javascript_dropdown_item_on_hover, ctx);
                 }
             }
         }
