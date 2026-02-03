@@ -52,7 +52,7 @@ static inline Color get_color_from_index(Context* ctx, int32_t index) {
     };
 }
 
-static void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
+void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
     for (int32_t y = 0; y < ctx->new_image_height; y++) {
         for (int32_t x = 0; x < ctx->new_image_width; x++) {
             int32_t index = (y * ctx->new_image_width + x) * 4;

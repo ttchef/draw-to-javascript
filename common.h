@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <math.h>
 
 #include <raylib.h>
@@ -75,6 +76,8 @@ typedef struct Context {
     int32_t save_states_index;
     uiState ui_state;
 } Context;
+
+void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y);
 
 void update_ui(struct Context* ctx);
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);

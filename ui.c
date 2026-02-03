@@ -13,6 +13,7 @@
 #include "clay_renderer_raylib.c"
 
 #include "stb_image.h"
+#include "stb_image_write.h"
 
 #define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
 #define TOP_BAR_SNAP_ANIM_TIME 0.8f /* In seconds */
@@ -167,14 +168,44 @@ void utilities_open_javascript_dropdown_item_on_hover(Clay_ElementId element_id,
 }
 
 void utilities_export_image_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        printf("Export Image clicked!\n");
+        const char* filters[] = { "*.png" };
+        const char* path = tinyfd_saveFileDialog(
+                "",
+                "",
+                ARRAY_LEN(filters),
+                filters,
+                "Image Files");
+        if (!path) {
+            fprintf(stderr, "Failed to path from filedialog\n");
+            return;
+        }
+        stbi_write_png(path, ctx->new_image_width, ctx->new_image_height, 4, ctx->image_data, ctx->new_image_width * 4);
     }
 }
 
 void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        printf("Export Javascript clicked!\n");
+        const char* filters[] = { "*.txt", "*.js" };
+        const char* path = tinyfd_saveFileDialog(
+                "",
+                "",
+                ARRAY_LEN(filters),
+                filters,
+                "Text File");
+        if (!path) {
+            fprintf(stderr, "Failed to path from filedialog\n");
+            return;
+        }
+        FILE* file = fopen(path, "wb");
+        if (!file) {
+            fprintf(stderr, "Failed to open file: %s\n", path);
+            return;
+        }
+        image_to_javascript(ctx, file, "rx", "ry"); // TODO: make variable names customizable
+        fclose(file);
     }
 }
 
