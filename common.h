@@ -42,6 +42,10 @@ typedef struct PixelState {
 } PixelState;
 
 typedef struct uiState {
+    float top_bar_lerp;
+    int32_t current_tool;
+
+    /* New Image Menu */
     bool new_image_menu;
     bool image_menu_floating;
     Vector2I image_menu_pos;
@@ -51,8 +55,11 @@ typedef struct uiState {
     int32_t image_menu_height_index;
     char image_width[UI_MAX_INPUT_CHARACTERS + 1]; /* NULL terminator */
     char image_height[UI_MAX_INPUT_CHARACTERS + 1];
-    float top_bar_lerp;
-    int32_t current_tool;
+
+    /* Color Picker Menu */
+    bool color_picker_menu;
+    bool color_picker_menu_floating;
+    Vector2I color_picker_menu_pos;
 } uiState;
 
 typedef struct Context {

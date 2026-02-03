@@ -615,10 +615,62 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
     }
 }
 
+void compute_clay_color_picker_menu(Context* ctx) {
+    CLAY(CLAY_ID("color_picker_menu"), {
+        .floating = {
+            .attachTo = CLAY_ATTACH_TO_ROOT,
+            .offset = { ctx->ui_state.color_picker_menu_pos.x, ctx->ui_state.color_picker_menu_pos.y },
+        },
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_FIXED(550), CLAY_SIZING_FIXED(650) },
+            .padding = CLAY_PADDING_ALL(12),
+        },
+        .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        CLAY(CLAY_ID("color_picker_menu_top_bar"), {
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.1f) },
+                .padding = CLAY_PADDING_ALL(12),
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+                .childGap = 12,
+            },
+            .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+        }) {
+            CLAY_TEXT(CLAY_STRING("Edit Color"), CLAY_TEXT_CONFIG({
+                .fontId = 1,
+                .fontSize = 40,
+                .textColor = UI_COLOR_WHITE,
+            }));
+            CLAY_AUTO_ID({.layout = {.sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}});
+            CLAY(CLAY_ID("color_picker_menu_close_button"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                },
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+                .aspectRatio = 1,
+                .backgroundColor = UI_COLOR_RED,
+            }) {
+                CLAY_TEXT(CLAY_STRING("X"), CLAY_TEXT_CONFIG({
+                    .fontId = 1,
+                    .fontSize = 40,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
+        }
+    }
+}
+
 void tool_settings_brush_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        printf("Clicked\n");
+        ctx->ui_state.color_picker_menu = true;
+        ctx->ui_state.color_picker_menu_pos.x = ctx->window_width * 0.5f - 550 * 0.5f;
+        ctx->ui_state.color_picker_menu_pos.y = ctx->window_height * 0.5f - 650 * 0.5f;
     }
 }
 
@@ -667,6 +719,9 @@ void clay_tool_settings_brush(Context* ctx) {
             .aspectRatio = 1.0f,
         }) {
             Clay_OnHover(tool_settings_brush_on_hover, ctx);
+            if (ctx->ui_state.color_picker_menu) {
+                compute_clay_color_picker_menu(ctx);
+            }
         }
     }
 }
