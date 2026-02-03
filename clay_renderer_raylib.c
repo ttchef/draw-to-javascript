@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "math.h"
 #include "clay.h"
 
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
@@ -15,7 +16,7 @@ typedef enum
 {
     CUSTOM_LAYOUT_ELEMENT_TYPE_3D_MODEL,
     CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES,
-    CUSTOM_LAYOUT_ELEMENT_CAMERA_2D_TEXTURE,
+    CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE,
 } CustomLayoutElementType;
 
 typedef struct
@@ -31,6 +32,10 @@ typedef struct
     Clay_Color borderColor;
 } CustomLayoutElement_RectangleLines;
 
+typedef struct 
+{
+    float radius;
+} CustomLayoutElement_Circle;
 
 typedef struct
 {
@@ -38,6 +43,7 @@ typedef struct
     union {
         CustomLayoutElement_3DModel model;
         CustomLayoutElement_RectangleLines rect;
+        CustomLayoutElement_Circle circle;
     } customData;
 } CustomLayoutElement;
 
@@ -272,6 +278,14 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
                         }
 
                         break;
+                    }
+                    case CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE: {
+                        Clay_RectangleRenderData* rect_config = &renderCommand->renderData.rectangle;
+                        CustomLayoutElement_Circle* circle_config = (CustomLayoutElement_Circle*)&renderCommand->renderData.custom.customData;
+                        int32_t px = boundingBox.x + boundingBox.width * 0.5f;
+                        int32_t py = boundingBox.y + boundingBox.height * 0.5f;
+                        float radius = fminf(boundingBox.width, boundingBox.height) * 0.5f;
+                        DrawCircle(px, py, radius, CLAY_COLOR_TO_RAYLIB_COLOR(rect_config->backgroundColor));
                     }
                     default: break;
                 }

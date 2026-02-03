@@ -34,7 +34,7 @@ typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 
 /* Custom Types */
 CustomLayoutElement input_box_color;
-CustomLayoutElement texture_camera;
+CustomLayoutElement custom_circle;
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
@@ -624,13 +624,21 @@ void clay_tool_settings_brush(Context* ctx) {
             .childGap = 12,
         },
     }) {
+        CustomLayoutElement_Circle circle = {
+            .radius = 10.0f,
+        };
+        custom_circle.type = CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE;
+        custom_circle.customData.circle = circle;
+
         for (int32_t i = 0; i < 2; i++) {
             CLAY_AUTO_ID({
                 .layout = {
                     .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
                 },
                 .backgroundColor = UI_COLOR_RED,
-                .cornerRadius = CLAY_CORNER_RADIUS(50),
+                .custom = {
+                    .customData = &custom_circle,
+                },
             });
         }   
     }
