@@ -34,7 +34,7 @@ typedef void (*PFN_onHover)(Clay_ElementId, Clay_PointerData, void* userData);
 
 /* Custom Types */
 CustomLayoutElement input_box_color;
-CustomLayoutElement custom_circle;
+CustomLayoutElement custom_circle[BRUSH_COLORS_COUNT];
 
 void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
@@ -555,7 +555,7 @@ void tools_brush_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_in
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         ctx->ui_state.current_tool = UI_TOOL_BRUSH;
-        ctx->draw_color = ctx->brush_color;
+        ctx->draw_color = ctx->brush_colors[ctx->current_brush];
     }
 }
 
@@ -625,19 +625,21 @@ void clay_tool_settings_brush(Context* ctx) {
         },
     }) {
         CustomLayoutElement_Circle circle = {
-            .radius = 10.0f,
+            .lines = true,
+            .fill = true,
+            .line_color = UI_COLOR_BLACK,
         };
-        custom_circle.type = CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE;
-        custom_circle.customData.circle = circle;
 
-        for (int32_t i = 0; i < 2; i++) {
+        for (int32_t i = 0; i < BRUSH_COLORS_COUNT; i++) {
+            circle.fill_color = RAYLIB_COLOR_TO_CLAY_COLOR(ctx->brush_colors[i]);
+            custom_circle[i].type = CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE;
+            custom_circle[i].customData.circle = circle;
             CLAY_AUTO_ID({
                 .layout = {
                     .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
                 },
-                .backgroundColor = UI_COLOR_RED,
                 .custom = {
-                    .customData = &custom_circle,
+                    .customData = &custom_circle[i],
                 },
             });
         }   

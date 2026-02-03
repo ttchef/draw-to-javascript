@@ -12,6 +12,7 @@
 
 #define UNDO_COUNT 10
 #define UI_MAX_INPUT_CHARACTERS 4
+#define BRUSH_COLORS_COUNT 2
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
@@ -66,7 +67,8 @@ typedef struct Context {
     Color clear_color;
     Color draw_color;
     Color ignore_color;
-    Color brush_color;
+    Color brush_colors[BRUSH_COLORS_COUNT];
+    int32_t current_brush;
     float brush_size;
     bool export_x_mirrored;
     bool export_one_line;

@@ -2,7 +2,7 @@
 CC = 
 
 TINY_FILE_DIALOGS_PATH = libtinyfiledialogs
-CFLAGS = -g -I$(TINY_FILE_DIALOGS_PATH)
+CFLAGS = -g -I$(TINY_FILE_DIALOGS_PATH) -std=c99
 LDFLAGS = 
 
 EXE_NAME = 

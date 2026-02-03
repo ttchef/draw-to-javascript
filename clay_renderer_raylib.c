@@ -9,6 +9,7 @@
 
 #define CLAY_RECTANGLE_TO_RAYLIB_RECTANGLE(rectangle) (Rectangle) { .x = rectangle.x, .y = rectangle.y, .width = rectangle.width, .height = rectangle.height }
 #define CLAY_COLOR_TO_RAYLIB_COLOR(color) (Color) { .r = (unsigned char)roundf(color.r), .g = (unsigned char)roundf(color.g), .b = (unsigned char)roundf(color.b), .a = (unsigned char)roundf(color.a) }
+#define RAYLIB_COLOR_TO_CLAY_COLOR(color) (Clay_Color){ .r = color.r, .g = color.g, .b = color.b, .a = color.a }
 
 Camera Raylib_camera;
 
@@ -34,7 +35,10 @@ typedef struct
 
 typedef struct 
 {
-    float radius;
+    bool lines;
+    bool fill;
+    Clay_Color line_color;
+    Clay_Color fill_color;
 } CustomLayoutElement_Circle;
 
 typedef struct
@@ -281,11 +285,16 @@ void Clay_Raylib_Render(Clay_RenderCommandArray renderCommands, Font* fonts)
                     }
                     case CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE: {
                         Clay_RectangleRenderData* rect_config = &renderCommand->renderData.rectangle;
-                        CustomLayoutElement_Circle* circle_config = (CustomLayoutElement_Circle*)&renderCommand->renderData.custom.customData;
+                        CustomLayoutElement_Circle* circle_config = &customElement->customData.circle;
                         int32_t px = boundingBox.x + boundingBox.width * 0.5f;
                         int32_t py = boundingBox.y + boundingBox.height * 0.5f;
                         float radius = fminf(boundingBox.width, boundingBox.height) * 0.5f;
-                        DrawCircle(px, py, radius, CLAY_COLOR_TO_RAYLIB_COLOR(rect_config->backgroundColor));
+                        if (circle_config->fill) {
+                            DrawCircle(px, py, radius, CLAY_COLOR_TO_RAYLIB_COLOR(circle_config->fill_color));
+                        }
+                        if (circle_config->lines) {
+                            DrawCircleLines(px, py, radius, CLAY_COLOR_TO_RAYLIB_COLOR(circle_config->line_color));
+                        }
                     }
                     default: break;
                 }
