@@ -13,9 +13,6 @@
 #include "clay.h"
 #include "clay_renderer_raylib.c"
 
-#include "stb_image.h"
-#include "stb_image_write.h"
-
 #define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
 #define TOP_BAR_SNAP_ANIM_TIME 0.8f /* In seconds */
 #define SLIDER_EXTEND_ANIM_TIME 0.8f
@@ -424,6 +421,13 @@ void export_js_menu_close_button_on_hover(Clay_ElementId element_id, Clay_Pointe
     }
 }
 
+void export_js_menu_export_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        /* TODO: implement.. */
+    }
+}
+
 void compute_clay_export_js_menu(Context* ctx) {
     CLAY(CLAY_ID("export_js_menu"), {
         .floating = {
@@ -437,6 +441,7 @@ void compute_clay_export_js_menu(Context* ctx) {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = { CLAY_SIZING_FIXED(550), CLAY_SIZING_FIXED(650) },
             .padding = CLAY_PADDING_ALL(12),
+            .childAlignment = CLAY_ALIGN_X_CENTER,
             .childGap = 32,
         },
         .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
@@ -460,7 +465,7 @@ void compute_clay_export_js_menu(Context* ctx) {
                 .textColor = UI_COLOR_WHITE,
             }));
             CLAY_AUTO_ID({.layout = {.sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}});
-            CLAY(CLAY_ID("color_picker_menu_close_button"), {
+            CLAY(CLAY_ID("export_js_menu_close_button"), {
                 .layout = {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_GROW(0) },
                     .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
@@ -500,6 +505,8 @@ void compute_clay_export_js_menu(Context* ctx) {
 
             clay_number_input_box(CLAY_STRING("Name Var Y"), dym_text, &ctx->ui_state.export_var_name_y.input, NULL);
         }
+        
+        clay_image_menu_button(CLAY_STRING("Export"), export_js_menu_export_button_on_hover, ctx);
     }
 }
 
@@ -929,16 +936,16 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
 }
 
 void compute_clay_slider(Context* ctx) {
-    float max_grow = ease_in_out_quart_lerp(0.0f, 50.0f, ctx->ui_state.slider_lerp);
+    float max_grow = ease_in_out_quart_lerp(0.0f, 25.0f, ctx->ui_state.slider_lerp);
     CLAY(CLAY_ID("slider_outer"), {
         .layout = {
             .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = max_grow ) },
-            .padding = { 12, 12, 20, 20 },
+            .padding = { 16, 16, 0, 0 },
         },
     }) {
         CLAY_AUTO_ID({
             .layout = {
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0), },
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.4f), },
             },
             .backgroundColor = UI_COLOR_DARK_GRAY,
             .cornerRadius = CLAY_CORNER_RADIUS(12),
@@ -955,7 +962,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     float extend_height = base_height + 12.0f;
     float top_bar_lerp_height = ease_in_out_quart_lerp(base_height, extend_height, t);
 
-    float slider_height_extend = 50.0f;
+    float slider_height_extend = 25.0f;
     float height_px = ease_in_out_quart_lerp(top_bar_lerp_height, top_bar_lerp_height + slider_height_extend, ctx->ui_state.slider_lerp);
 
     float radius_px = ease_in_out_quart_lerp(12.0f, 0.0f, t);
@@ -1161,6 +1168,7 @@ void update_ui(struct Context *ctx) {
     if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
         ctx->ui_state.image_menu.floating = false;
         ctx->ui_state.color_picker_menu.floating = false;
+        ctx->ui_state.export_js_menu.floating = false;
     }
 }
 

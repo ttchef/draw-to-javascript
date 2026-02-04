@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "stb_image.h"
+#include "stb_image_write.h"
+
 #include <raylib.h>
 
 #define UNDO_COUNT 10
