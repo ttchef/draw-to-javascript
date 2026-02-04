@@ -211,7 +211,7 @@ void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_i
     }
 }
 
-void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Color* select_color) {
+void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool selected) {
     CustomLayoutElement_RectangleLines custom_rect = {
         .borderColor = UI_COLOR_WHITE,
     };
@@ -240,7 +240,7 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, Clay_Colo
             },
         }) {
             Clay_Color background_color;
-            if (select_color) background_color = *select_color;
+            if (selected) background_color = UI_COLOR_LIGHT_BLUE;
             else if (Clay_Hovered()) background_color = UI_COLOR_LIGHT_GRAY;
             else background_color = UI_COLOR_DARK_GRAY;
 
@@ -391,9 +391,7 @@ void compute_clay_new_image_menu(Context* ctx) {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
                 },
             }) {
-                Clay_Color* select_color = NULL;
-                if (ctx->ui_state.image_menu_width_input) select_color = (Clay_Color*)&UI_COLOR_LIGHT_BLUE;
-                clay_number_input_box(CLAY_STRING("Width"), dym_string, select_color);
+                clay_number_input_box(CLAY_STRING("Width"), dym_string, ctx->ui_state.image_menu_width_input);
             }
 
             dym_string.chars = ctx->ui_state.image_height;
@@ -405,9 +403,7 @@ void compute_clay_new_image_menu(Context* ctx) {
                     .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
                 },
             }) {
-                Clay_Color* select_color = NULL;
-                if (ctx->ui_state.image_menu_height_input) select_color = (Clay_Color*)&UI_COLOR_LIGHT_BLUE;
-                clay_number_input_box(CLAY_STRING("Height"), dym_string, select_color);
+                clay_number_input_box(CLAY_STRING("Height"), dym_string, ctx->ui_state.image_menu_height_input);
             }
 
             if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
