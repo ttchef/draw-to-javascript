@@ -12,6 +12,7 @@
 
 #define UNDO_COUNT 10
 #define UI_MAX_INPUT_CHARACTERS 4
+#define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
 #define BRUSH_COLORS_COUNT 2
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
@@ -60,6 +61,15 @@ typedef struct uiState {
     bool color_picker_menu;
     bool color_picker_menu_floating;
     Vector2I color_picker_menu_pos;
+    bool color_picker_menu_r_input;
+    bool color_picker_menu_g_input;
+    bool color_picker_menu_b_input;
+    int32_t color_picker_menu_r_index;
+    int32_t color_picker_menu_g_index;
+    int32_t color_picker_menu_b_index;
+    char color_r[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
+    char color_g[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
+    char color_b[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
 } uiState;
 
 typedef struct Context {

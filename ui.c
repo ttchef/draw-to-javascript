@@ -41,12 +41,16 @@ void handle_clay_errors(Clay_ErrorData error_data) {
     fprintf(stderr, "[CLAY_ERROR]: %s\n", error_data.errorText.chars);
 }   
 
-void check_input_number(char* number_string) {
-    if (strlen(number_string) != UI_MAX_INPUT_CHARACTERS) return;
-    if (number_string[0] >= '4') {
-        number_string[0] = '4';
-        for (int32_t i = 1; i < UI_MAX_INPUT_CHARACTERS; i++) {
-            number_string[i] = '0';
+void check_input_number(char* number, char* number_string) {
+    size_t max_num_len = strlen(number);
+    if (strlen(number_string) != max_num_len) return;
+
+    if (number_string[0] >= number[0]) {
+        number_string[0] = number[0];
+        for (int32_t i = 1; i < max_num_len; i++) {
+            if (number_string[i] > number[i]) {
+                number_string[i] = number[i];
+            }
         }
     }
 }
@@ -211,7 +215,7 @@ void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_i
     }
 }
 
-void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool selected) {
+void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool* selected, char* max_num) {
     CustomLayoutElement_RectangleLines custom_rect = {
         .borderColor = UI_COLOR_WHITE,
     };
@@ -240,9 +244,17 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool sele
             },
         }) {
             Clay_Color background_color;
-            if (selected) background_color = UI_COLOR_LIGHT_BLUE;
+            if (*selected) background_color = UI_COLOR_LIGHT_BLUE;
             else if (Clay_Hovered()) background_color = UI_COLOR_LIGHT_GRAY;
             else background_color = UI_COLOR_DARK_GRAY;
+
+            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                if (Clay_Hovered()) *selected = true;
+                else {
+                    *selected = false;
+                    check_input_number(max_num, (char*)dynmaic_text.chars); /* Holy Bad */
+                }
+            }
 
             CLAY_AUTO_ID({
                 .layout = {
@@ -277,8 +289,9 @@ void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData point
 void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        check_input_number(ctx->ui_state.image_width);
-        check_input_number(ctx->ui_state.image_height);
+        check_input_number("4000", ctx->ui_state.image_width);
+        check_input_number("4000", ctx->ui_state.image_height);
+
         ctx->ui_state.image_menu_width_input = false;
         ctx->ui_state.image_menu_height_input = false;
 
@@ -385,44 +398,12 @@ void compute_clay_new_image_menu(Context* ctx) {
                 .isStaticallyAllocated = true,
             };
             
-            /* Only for ID */
-            CLAY(CLAY_ID("width_number_input"), {
-                .layout = {
-                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
-                },
-            }) {
-                clay_number_input_box(CLAY_STRING("Width"), dym_string, ctx->ui_state.image_menu_width_input);
-            }
+            clay_number_input_box(CLAY_STRING("Width"), dym_string, &ctx->ui_state.image_menu_width_input, "4000");
 
             dym_string.chars = ctx->ui_state.image_height;
             dym_string.length = strlen(ctx->ui_state.image_height);
 
-            /* Only for ID */
-            CLAY(CLAY_ID("height_number_input"), {
-                .layout = {
-                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
-                },
-            }) {
-                clay_number_input_box(CLAY_STRING("Height"), dym_string, ctx->ui_state.image_menu_height_input);
-            }
-
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                ctx->ui_state.image_menu_width_input = false;
-                check_input_number(ctx->ui_state.image_width);
-
-                if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("width_number_input")))) {
-                    ctx->ui_state.image_menu_width_input = true;
-                }
-            }
-
-            if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-                ctx->ui_state.image_menu_height_input = false;
-                check_input_number(ctx->ui_state.image_height);
-
-                if (Clay_PointerOver(Clay_GetElementId(CLAY_STRING("height_number_input")))) {
-                    ctx->ui_state.image_menu_height_input = true;
-                }
-            }
+            clay_number_input_box(CLAY_STRING("Height"), dym_string, &ctx->ui_state.image_menu_height_input, "4000");
         }
 
         CLAY_AUTO_ID({
@@ -675,6 +656,29 @@ void compute_clay_color_picker_menu(Context* ctx) {
                 }));
             }
         }
+
+        /* Bottom Part */
+        CLAY_AUTO_ID({
+            .layout = { 
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+            },
+        }) {
+            Clay_String dym_string = {
+                .chars = ctx->ui_state.color_r,
+                .length = strlen(ctx->ui_state.color_r),
+                .isStaticallyAllocated = true,
+            };
+            clay_number_input_box(CLAY_STRING("Red"), dym_string, &ctx->ui_state.color_picker_menu_r_input, "255");
+
+            dym_string.chars = ctx->ui_state.color_g;
+            dym_string.length = strlen(ctx->ui_state.color_g);
+            clay_number_input_box(CLAY_STRING("Green"), dym_string, &ctx->ui_state.color_picker_menu_g_input, "255");
+
+            dym_string.chars = ctx->ui_state.color_b;
+            dym_string.length = strlen(ctx->ui_state.color_b);
+            clay_number_input_box(CLAY_STRING("Blue"), dym_string, &ctx->ui_state.color_picker_menu_b_input, "255");
+        }
     }
 }
 
@@ -835,6 +839,23 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
     }
 }
 
+void add_character_to_input_box(char* array, char* max_num, int32_t length, int32_t* index, bool* input) {
+    char c = GetKeyPressed();
+
+    if (c >= 48 && c <= 57 && *index < length) {
+        if (!(c == 48 && *index == 0)) {
+            array[(*index)++] = c;
+        }
+    }
+    else if (c == 3 && *index > 0) {
+        array[--(*index)] = 0;
+    }
+    else if (c == 1) {
+        *input = false;
+        check_input_number(max_num, array);
+    }
+}
+
 void update_ui(struct Context *ctx) {
     bool is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
@@ -856,44 +877,38 @@ void update_ui(struct Context *ctx) {
     if (ctx->ui_state.top_bar_lerp > 1.0f) ctx->ui_state.top_bar_lerp = 1.0f;
     if (ctx->ui_state.top_bar_lerp < 0.0f) ctx->ui_state.top_bar_lerp = 0.0f;
 
-    /* Input */
+    /* Input Image Menu */
     uiState* state = &ctx->ui_state;
     if (state->image_menu_width_input) {
-        if (state->image_menu_height_input) state->image_menu_height_input = false;
-
-        char c = GetKeyPressed();
-
-        if (c >= 48 && c <= 57 && state->image_menu_width_index < UI_MAX_INPUT_CHARACTERS) {
-            if (!(c == 48 && state->image_menu_width_index == 0)) {
-                state->image_width[state->image_menu_width_index++] = c;
-            }
-        }
-        else if (c == 3 && state->image_menu_width_index > 0) {
-            state->image_width[--state->image_menu_width_index] = 0;
-        }
-        else if (c == 1) {
-            state->image_menu_width_input = false;
-            check_input_number(state->image_width);
-        }
+        state->image_menu_height_input = false;
+        add_character_to_input_box(state->image_width, "4000", UI_MAX_INPUT_CHARACTERS,
+                &state->image_menu_width_index, &state->image_menu_width_input);
     }
 
-    if (state->image_menu_height_input) {
-        if (state->image_menu_width_input) state->image_menu_width_input = false;
+    else if (state->image_menu_height_input) {
+        state->image_menu_width_input = false;
+        add_character_to_input_box(state->image_height, "4000", UI_MAX_INPUT_CHARACTERS,
+                &state->image_menu_height_index, &state->image_menu_height_input);
+    }
 
-        char c = GetKeyPressed();
-
-        if (c >= 48 && c <= 57 && state->image_menu_height_index < UI_MAX_INPUT_CHARACTERS) {
-            if (!(c == 48 && state->image_menu_height_index == 0)) {
-                state->image_height[state->image_menu_height_index++] = c;
-            } 
-        }
-        else if (c == 3 && state->image_menu_height_index > 0) {
-            state->image_height[--state->image_menu_height_index] = 0;
-        }
-        else if (c == 1) {
-            state->image_menu_height_input = false;
-            check_input_number(state->image_height);
-        }
+    /* Input Color Picker */
+    if (state->color_picker_menu_r_input) {
+        state->color_picker_menu_g_input = false;
+        state->color_picker_menu_b_input = false;
+        add_character_to_input_box(state->color_r, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
+                &state->color_picker_menu_r_index, &state->color_picker_menu_r_input);
+    }
+    else if (state->color_picker_menu_g_input) {
+        state->color_picker_menu_r_input = false;
+        state->color_picker_menu_b_input = false;
+        add_character_to_input_box(state->color_g, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
+                &state->color_picker_menu_g_index, &state->color_picker_menu_g_input);
+    }
+    else if (state->color_picker_menu_b_input) {
+        state->color_picker_menu_r_input = false;
+        state->color_picker_menu_g_input = false;
+        add_character_to_input_box(state->color_b, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
+                &state->color_picker_menu_b_index, &state->color_picker_menu_b_input);
     }
 
     if (is_mouse_down) {
