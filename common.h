@@ -28,6 +28,13 @@ enum uiTool {
     UI_TOOL_ERASER,
     UI_TOOL_BUCKET_FILL,
     // TODO: UI_TOOL_COLOR_PICKER (maybe)
+    UI_TOOL_COUNT,
+};
+
+const bool ui_tool_has_slider[UI_TOOL_COUNT] = {
+    true, 
+    true,
+    false,
 };
 
 typedef struct Vector2I {
@@ -44,6 +51,7 @@ typedef struct PixelState {
 
 typedef struct uiState {
     float top_bar_lerp;
+    float slider_lerp;
     int32_t current_tool;
 
     /* New Image Menu */

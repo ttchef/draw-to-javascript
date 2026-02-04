@@ -17,6 +17,7 @@
 
 #define WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING 1050
 #define TOP_BAR_SNAP_ANIM_TIME 0.8f /* In seconds */
+#define SLIDER_EXTEND_ANIM_TIME 0.8f
 
 typedef struct Context Context;
 
@@ -845,9 +846,19 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     float t = ctx->ui_state.top_bar_lerp;
 
     float width_px = ease_in_out_quart_lerp(1000.0f, ctx->window_width, t);
-    float height_px = ease_in_out_quart_lerp(100.0f, 112.0f, t);
+
+    float base_height = 100.0f;
+    float extend_height = base_height + 12.0f;
+    float top_bar_lerp_height = ease_in_out_quart_lerp(base_height, extend_height, t);
+
+    float slider_height_extend = 50.0f;
+    float height_px = ease_in_out_quart_lerp(top_bar_lerp_height, top_bar_lerp_height + slider_height_extend, ctx->ui_state.slider_lerp);
+
     float radius_px = ease_in_out_quart_lerp(12.0f, 0.0f, t);
     float padding_top = ease_in_out_quart_lerp(10.0f, 22.0f, t);
+
+    float default_padding = 10.0f;
+    float padding_bottom = ease_in_out_quart_lerp(default_padding, default_padding + slider_height_extend, ctx->ui_state.slider_lerp);
 
     Clay_Sizing top_bar_size = {
         .width = CLAY_SIZING_FIXED(width_px),
@@ -856,6 +867,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
     padding_setting.top = padding_top;
+    padding_setting.bottom = padding_bottom;
 
     CLAY(CLAY_ID("top_bar"), {
         .layout = {
@@ -926,21 +938,33 @@ void update_ui(struct Context *ctx) {
     Clay_SetLayoutDimensions((Clay_Dimensions){ctx->window_width, ctx->window_height});
     Clay_SetPointerState((Clay_Vector2){ctx->current_mouse_pos.x, ctx->current_mouse_pos.y}, is_mouse_down);
 
-    float delta = (1.0f / TOP_BAR_SNAP_ANIM_TIME) * GetFrameTime();
-
-    bool merged =
-        ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING;
+    float delta_top_bar_anim = (1.0f / TOP_BAR_SNAP_ANIM_TIME) * GetFrameTime();
+    float delta_slider_anim = (1.0f / SLIDER_EXTEND_ANIM_TIME) * GetFrameTime();
+ 
+    /* Top Bar Animation */
+    bool merged = ctx->window_width < WINDOW_SIZE_THRESHOLD_TOP_BAR_SNAPPING;
 
     if (merged) {
-        ctx->ui_state.top_bar_lerp += delta;
+        ctx->ui_state.top_bar_lerp += delta_top_bar_anim;
     }
     else {
-        ctx->ui_state.top_bar_lerp -= delta;
+        ctx->ui_state.top_bar_lerp -= delta_top_bar_anim;
     }
 
     /* Clamp */;
     if (ctx->ui_state.top_bar_lerp > 1.0f) ctx->ui_state.top_bar_lerp = 1.0f;
     if (ctx->ui_state.top_bar_lerp < 0.0f) ctx->ui_state.top_bar_lerp = 0.0f;
+
+    /* Slider Animation */
+    if (ui_tool_has_slider[ctx->ui_state.current_tool]) {
+        ctx->ui_state.slider_lerp += delta_slider_anim;
+    }
+    else {
+        ctx->ui_state.slider_lerp -= delta_slider_anim;
+    }
+
+    if (ctx->ui_state.slider_lerp > 1.0f) ctx->ui_state.slider_lerp = 1.0f;
+    if (ctx->ui_state.slider_lerp < 0.0f) ctx->ui_state.slider_lerp = 0.0f;
 
     /* Input Image Menu */
     uiState* state = &ctx->ui_state;
