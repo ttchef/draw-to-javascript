@@ -431,6 +431,8 @@ int main() {
 
     generate_rainbow_circle(&ctx.rainbow_circle);
 
+    init_ui(&ctx);
+
     while (!WindowShouldClose()) {
         ctx.window_width = GetScreenWidth();
         ctx.window_height = GetScreenHeight();

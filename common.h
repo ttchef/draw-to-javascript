@@ -11,9 +11,11 @@
 #include <raylib.h>
 
 #define UNDO_COUNT 10
-#define UI_MAX_INPUT_CHARACTERS 4
-#define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
 #define BRUSH_COLORS_COUNT 2
+
+#define UI_MAX_INPUT_CHARACTERS 100
+#define UI_DIMENSIONS_MAX_INPUT_CHARACTERS 4
+#define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
@@ -29,6 +31,13 @@ enum uiTool {
     UI_TOOL_BUCKET_FILL,
     // TODO: UI_TOOL_COLOR_PICKER (maybe)
     UI_TOOL_COUNT,
+};
+
+enum uiInputBoxType {
+    UI_INPUT_BOX_TYPE_NUMBERS = (1 << 0),
+    UI_INPUT_BOX_TYPE_LOWERCASE_ALPHA = (1 << 1),
+    UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA = (1 << 2),
+    UI_INPUT_BOX_TYPE_ALL_ALHPA = (2 << 1),
 };
 
 const bool ui_tool_has_slider[UI_TOOL_COUNT] = {
@@ -55,6 +64,14 @@ typedef struct uiFloatingMenu {
     Vector2I pos;
 } uiFloatingMenu;
 
+typedef struct uiInputBox {
+    enum uiInputBoxType type;
+    bool input;
+    char array[UI_MAX_INPUT_CHARACTERS];
+    int32_t index;
+    size_t length;
+} uiInputBox;
+
 typedef struct uiState {
     float top_bar_lerp;
     float slider_lerp;
@@ -62,24 +79,14 @@ typedef struct uiState {
 
     /* New Image Menu */
     uiFloatingMenu image_menu;
-    bool image_menu_width_input;
-    bool image_menu_height_input;
-    int32_t image_menu_width_index;
-    int32_t image_menu_height_index;
-    char image_width[UI_MAX_INPUT_CHARACTERS + 1]; /* NULL terminator */
-    char image_height[UI_MAX_INPUT_CHARACTERS + 1];
+    uiInputBox width_input;
+    uiInputBox height_input;
 
     /* Color Picker Menu */
     uiFloatingMenu color_picker_menu;
-    bool color_picker_menu_r_input;
-    bool color_picker_menu_g_input;
-    bool color_picker_menu_b_input;
-    int32_t color_picker_menu_r_index;
-    int32_t color_picker_menu_g_index;
-    int32_t color_picker_menu_b_index;
-    char color_r[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
-    char color_g[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
-    char color_b[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
+    uiInputBox red_input;
+    uiInputBox blue_input;
+    uiInputBox green_input;
 
     /* Export Javascript Menu */
     uiFloatingMenu export_js_menu;
@@ -120,6 +127,7 @@ typedef struct Context {
 void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y);
 void load_from_javascript(Context* ctx);
 
+void init_ui(struct Context* ctx);
 void update_ui(struct Context* ctx);
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);
 void draw_ui(struct Context* ctx, Font* fonts);

@@ -196,6 +196,8 @@ void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_i
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         ctx->ui_state.export_js_menu.visible = true;
+        ctx->ui_state.export_js_menu.pos.x = ctx->window_width * 0.5f - 550 * 0.5f;
+        ctx->ui_state.export_js_menu.pos.y = ctx->window_height * 0.5f - 650 * 0.5f;
     }
 }
 
@@ -273,14 +275,14 @@ void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData point
 void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        check_input_number("4000", ctx->ui_state.image_width);
-        check_input_number("4000", ctx->ui_state.image_height);
+        check_input_number("4000", ctx->ui_state.width_input.array);
+        check_input_number("4000", ctx->ui_state.height_input.array);
 
-        ctx->ui_state.image_menu_width_input = false;
-        ctx->ui_state.image_menu_height_input = false;
+        ctx->ui_state.width_input.input = false;
+        ctx->ui_state.height_input.input = false;
 
-        ctx->new_image_width = atoi(ctx->ui_state.image_width);
-        ctx->new_image_height = atoi(ctx->ui_state.image_height);
+        ctx->new_image_width = atoi(ctx->ui_state.width_input.array);
+        ctx->new_image_height = atoi(ctx->ui_state.height_input.array);
 
         if (ctx->new_image_width == 0 || ctx->new_image_height == 0) return;
 
@@ -377,17 +379,17 @@ void compute_clay_new_image_menu(Context* ctx) {
             },
         }) {
             Clay_String dym_string = {
-                .chars = ctx->ui_state.image_width,
-                .length = strlen(ctx->ui_state.image_width),
+                .chars = ctx->ui_state.width_input.array,
+                .length = strlen(ctx->ui_state.width_input.array),
                 .isStaticallyAllocated = true,
             };
             
-            clay_number_input_box(CLAY_STRING("Width"), dym_string, &ctx->ui_state.image_menu_width_input, "4000");
+            clay_number_input_box(CLAY_STRING("Width"), dym_string, &ctx->ui_state.width_input.input, "4000");
 
-            dym_string.chars = ctx->ui_state.image_height;
-            dym_string.length = strlen(ctx->ui_state.image_height);
+            dym_string.chars = ctx->ui_state.height_input.array;
+            dym_string.length = strlen(ctx->ui_state.height_input.array);
 
-            clay_number_input_box(CLAY_STRING("Height"), dym_string, &ctx->ui_state.image_menu_height_input, "4000");
+            clay_number_input_box(CLAY_STRING("Height"), dym_string, &ctx->ui_state.height_input.input, "4000");
         }
 
         CLAY_AUTO_ID({
@@ -666,9 +668,9 @@ void color_picker_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData p
 }
 
 static inline void update_current_color(Context* ctx) {
-    int32_t r = atoi(ctx->ui_state.color_r);
-    int32_t g = atoi(ctx->ui_state.color_g);
-    int32_t b = atoi(ctx->ui_state.color_b);
+    int32_t r = atoi(ctx->ui_state.red_input.array);
+    int32_t g = atoi(ctx->ui_state.green_input.array);
+    int32_t b = atoi(ctx->ui_state.blue_input.array);
 
     ctx->brush_colors[ctx->current_brush].r = r;
     ctx->brush_colors[ctx->current_brush].g = g;
@@ -760,19 +762,19 @@ void compute_clay_color_picker_menu(Context* ctx) {
                 },
             }) {
                 Clay_String dym_string = {
-                    .chars = ctx->ui_state.color_r,
-                    .length = strlen(ctx->ui_state.color_r),
+                    .chars = ctx->ui_state.red_input.array,
+                    .length = strlen(ctx->ui_state.red_input.array),
                     .isStaticallyAllocated = true,
                 };
-                clay_number_input_box(CLAY_STRING("Red"), dym_string, &ctx->ui_state.color_picker_menu_r_input, "255");
+                clay_number_input_box(CLAY_STRING("Red"), dym_string, &ctx->ui_state.red_input.input, "255");
 
-                dym_string.chars = ctx->ui_state.color_g;
-                dym_string.length = strlen(ctx->ui_state.color_g);
-                clay_number_input_box(CLAY_STRING("Green"), dym_string, &ctx->ui_state.color_picker_menu_g_input, "255");
+                dym_string.chars = ctx->ui_state.green_input.array;
+                dym_string.length = strlen(ctx->ui_state.green_input.array);
+                clay_number_input_box(CLAY_STRING("Green"), dym_string, &ctx->ui_state.green_input.input, "255");
 
-                dym_string.chars = ctx->ui_state.color_b;
-                dym_string.length = strlen(ctx->ui_state.color_b);
-                clay_number_input_box(CLAY_STRING("Blue"), dym_string, &ctx->ui_state.color_picker_menu_b_input, "255");
+                dym_string.chars = ctx->ui_state.blue_input.array;
+                dym_string.length = strlen(ctx->ui_state.blue_input.array);
+                clay_number_input_box(CLAY_STRING("Blue"), dym_string, &ctx->ui_state.blue_input.input, "255");
             }
         }
 
@@ -1002,20 +1004,20 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
     }
 }
 
-void add_character_to_input_box(char* array, char* max_num, int32_t length, int32_t* index, bool* input) {
+void add_character_to_input_box(uiInputBox* box, char* max_num) {
     char c = GetKeyPressed();
 
-    if (c >= 48 && c <= 57 && *index < length) {
-        if (!(c == 48 && *index == 0)) {
-            array[(*index)++] = c;
+    if (c >= 48 && c <= 57 && box->index < box->length) {
+        if (!(c == 48 && box->index == 0)) {
+            box->array[box->index++] = c;
         }
     }
-    else if (c == 3 && *index > 0) {
-        array[--(*index)] = 0;
+    else if (c == 3 && box->index > 0) {
+        box->array[--box->index] = 0;
     }
     else if (c == 1) {
-        *input = false;
-        check_input_number(max_num, array);
+        box->input = false;
+        check_input_number(max_num, box->array);
     }
 }
 
@@ -1054,38 +1056,33 @@ void update_ui(struct Context *ctx) {
 
     /* Input Image Menu */
     uiState* state = &ctx->ui_state;
-    if (state->image_menu_width_input) {
-        state->image_menu_height_input = false;
-        add_character_to_input_box(state->image_width, "4000", UI_MAX_INPUT_CHARACTERS,
-                &state->image_menu_width_index, &state->image_menu_width_input);
+    if (state->width_input.input) {
+        state->height_input.input = false;
+        add_character_to_input_box(&state->width_input, "4000");
     }
 
-    else if (state->image_menu_height_input) {
-        state->image_menu_width_input = false;
-        add_character_to_input_box(state->image_height, "4000", UI_MAX_INPUT_CHARACTERS,
-                &state->image_menu_height_index, &state->image_menu_height_input);
+    else if (state->height_input.input) {
+        state->width_input.input = false;
+        add_character_to_input_box(&state->height_input, "4000");
     }
 
     /* Input Color Picker */
-    if (state->color_picker_menu_r_input) {
-        state->color_picker_menu_g_input = false;
-        state->color_picker_menu_b_input = false;
-        add_character_to_input_box(state->color_r, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
-                &state->color_picker_menu_r_index, &state->color_picker_menu_r_input);
+    if (state->red_input.input) {
+        state->green_input.input = false;
+        state->blue_input.input = false;
+        add_character_to_input_box(&state->red_input, "255");
         update_current_color(ctx);
     }
-    else if (state->color_picker_menu_g_input) {
-        state->color_picker_menu_r_input = false;
-        state->color_picker_menu_b_input = false;
-        add_character_to_input_box(state->color_g, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
-                &state->color_picker_menu_g_index, &state->color_picker_menu_g_input);
+    else if (state->green_input.input) {
+        state->red_input.input = false;
+        state->blue_input.input = false;
+        add_character_to_input_box(&state->green_input, "255");
         update_current_color(ctx);
     }
-    else if (state->color_picker_menu_b_input) {
-        state->color_picker_menu_r_input = false;
-        state->color_picker_menu_g_input = false;
-        add_character_to_input_box(state->color_b, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
-                &state->color_picker_menu_b_index, &state->color_picker_menu_b_input);
+    else if (state->blue_input.input) {
+        state->red_input.input = false;
+        state->green_input.input = false;
+        add_character_to_input_box(&state->blue_input, "255");
         update_current_color(ctx);
     }
 
@@ -1116,5 +1113,16 @@ void update_ui(struct Context *ctx) {
 void draw_ui(struct Context *ctx, Font* fonts) {
     Clay_RenderCommandArray cmd_array = Clay_EndLayout();
     Clay_Raylib_Render(cmd_array, fonts);
+}
+
+void init_ui(struct Context *ctx) {
+    uiState* state = &ctx->ui_state;
+
+    state->width_input.length = UI_DIMENSIONS_MAX_INPUT_CHARACTERS;
+    state->height_input.length = UI_DIMENSIONS_MAX_INPUT_CHARACTERS;
+
+    state->red_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
+    state->green_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
+    state->blue_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
 }
 
