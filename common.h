@@ -38,7 +38,7 @@ enum uiInputBoxType {
     UI_INPUT_BOX_TYPE_NUMBERS = (1 << 0),
     UI_INPUT_BOX_TYPE_LOWERCASE_ALPHA = (1 << 1),
     UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA = (1 << 2),
-    UI_INPUT_BOX_TYPE_ALL_ALHPA = (2 << 1),
+    UI_INPUT_BOX_TYPE_ALL_ALHPA = (3 << 1),
 };
 
 const bool ui_tool_has_slider[UI_TOOL_COUNT] = {

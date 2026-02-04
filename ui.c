@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include <raylib.h>
 
@@ -1031,9 +1032,9 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
 }
 
 void add_character_to_input_box(uiInputBox* box, char* max_num) {
-    char c = GetKeyPressed();
+    char c = GetCharPressed();
+    char key = GetKeyPressed();
     
-    printf("%c", c);
     if (box->type & UI_INPUT_BOX_TYPE_NUMBERS) {
         if (c >= 48 && c <= 57 && box->index < box->length) {
             if (!(c == 48 && box->index == 0)) {
@@ -1042,21 +1043,21 @@ void add_character_to_input_box(uiInputBox* box, char* max_num) {
         }
     }
     if (box->type & UI_INPUT_BOX_TYPE_LOWERCASE_ALPHA) {
-        if (c >= 97 && c <= 122) {
-            box->array[box->index++] = c;
+        if (c >= 97 && c <= 122 && box->index < box->length) {
+            box->array[box->index++] = tolower(c);
         }
     }
-    if (box->type & UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA) {
-        if (c >= 65 && c <= 90) {
+    if (box->type & UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA && IsKeyDown(KEY_LEFT_SHIFT)) {
+        if (c >= 65 && c <= 90 && box->index < box->length) {
             box->array[box->index++] = c;
         }
     }
 
     /* Universal Delte and Enter */
-    else if (c == 3 && box->index > 0) {
+    if (key == 3 && box->index > 0) {
         box->array[--box->index] = 0;
     }
-    else if (c == 1) {
+    else if (key == 1) {
         box->input = false;
         if (max_num) {
             check_input_number(max_num, box->array);
