@@ -48,7 +48,7 @@ void check_input_number(char* number, char* number_string) {
     if (number_string[0] >= number[0]) {
         number_string[0] = number[0];
         for (int32_t i = 1; i < max_num_len; i++) {
-            if (number_string[i] > number[i]) {
+            if (number_string[i] > number[i] || number_string[0] == number[0]) {
                 number_string[i] = number[i];
             }
         }
@@ -607,6 +607,24 @@ void color_picker_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData p
     }
 }
 
+static inline void update_current_color(Context* ctx) {
+    int32_t r = atoi(ctx->ui_state.color_r);
+    int32_t g = atoi(ctx->ui_state.color_g);
+    int32_t b = atoi(ctx->ui_state.color_b);
+
+    ctx->brush_colors[ctx->current_brush].r = r;
+    ctx->brush_colors[ctx->current_brush].g = g;
+    ctx->brush_colors[ctx->current_brush].b = b;
+}
+
+void color_picker_select_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        update_current_color(ctx);
+        ctx->ui_state.color_picker_menu = false;
+    }
+}
+
 void compute_clay_color_picker_menu(Context* ctx) {
     CLAY(CLAY_ID("color_picker_menu"), {
         .floating = {
@@ -657,27 +675,71 @@ void compute_clay_color_picker_menu(Context* ctx) {
             }
         }
 
-        /* Bottom Part */
+        /* Color Select */
         CLAY_AUTO_ID({
             .layout = { 
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                .padding = CLAY_PADDING_ALL(12),
+                .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                .childGap = 24,
             },
         }) {
-            Clay_String dym_string = {
-                .chars = ctx->ui_state.color_r,
-                .length = strlen(ctx->ui_state.color_r),
-                .isStaticallyAllocated = true,
-            };
-            clay_number_input_box(CLAY_STRING("Red"), dym_string, &ctx->ui_state.color_picker_menu_r_input, "255");
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                },
+                .backgroundColor = RAYLIB_COLOR_TO_CLAY_COLOR(ctx->brush_colors[ctx->current_brush]),
+            });
 
-            dym_string.chars = ctx->ui_state.color_g;
-            dym_string.length = strlen(ctx->ui_state.color_g);
-            clay_number_input_box(CLAY_STRING("Green"), dym_string, &ctx->ui_state.color_picker_menu_g_input, "255");
+            CLAY_AUTO_ID({
+                .layout = {
+                    .layoutDirection = CLAY_TOP_TO_BOTTOM,
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+                    .padding = CLAY_PADDING_ALL(8),
+                    .childGap = 12,
+                },
+            }) {
+                Clay_String dym_string = {
+                    .chars = ctx->ui_state.color_r,
+                    .length = strlen(ctx->ui_state.color_r),
+                    .isStaticallyAllocated = true,
+                };
+                clay_number_input_box(CLAY_STRING("Red"), dym_string, &ctx->ui_state.color_picker_menu_r_input, "255");
 
-            dym_string.chars = ctx->ui_state.color_b;
-            dym_string.length = strlen(ctx->ui_state.color_b);
-            clay_number_input_box(CLAY_STRING("Blue"), dym_string, &ctx->ui_state.color_picker_menu_b_input, "255");
+                dym_string.chars = ctx->ui_state.color_g;
+                dym_string.length = strlen(ctx->ui_state.color_g);
+                clay_number_input_box(CLAY_STRING("Green"), dym_string, &ctx->ui_state.color_picker_menu_g_input, "255");
+
+                dym_string.chars = ctx->ui_state.color_b;
+                dym_string.length = strlen(ctx->ui_state.color_b);
+                clay_number_input_box(CLAY_STRING("Blue"), dym_string, &ctx->ui_state.color_picker_menu_b_input, "255");
+            }
+        }
+
+        /* Select Button */
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.15f) },
+                .padding = CLAY_PADDING_ALL(12),
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+            },
+        }) {
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIXED(250), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                },
+                .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+            }) {
+                Clay_OnHover(color_picker_select_button_on_hover, ctx);
+                CLAY_TEXT(CLAY_STRING("Select"), CLAY_TEXT_CONFIG({
+                    .fontId = 1,
+                    .fontSize = 40,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
         }
     }
 }
@@ -897,18 +959,21 @@ void update_ui(struct Context *ctx) {
         state->color_picker_menu_b_input = false;
         add_character_to_input_box(state->color_r, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
                 &state->color_picker_menu_r_index, &state->color_picker_menu_r_input);
+        update_current_color(ctx);
     }
     else if (state->color_picker_menu_g_input) {
         state->color_picker_menu_r_input = false;
         state->color_picker_menu_b_input = false;
         add_character_to_input_box(state->color_g, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
                 &state->color_picker_menu_g_index, &state->color_picker_menu_g_input);
+        update_current_color(ctx);
     }
     else if (state->color_picker_menu_b_input) {
         state->color_picker_menu_r_input = false;
         state->color_picker_menu_g_input = false;
         add_character_to_input_box(state->color_b, "255", UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS, 
                 &state->color_picker_menu_b_index, &state->color_picker_menu_b_input);
+        update_current_color(ctx);
     }
 
     if (is_mouse_down) {
