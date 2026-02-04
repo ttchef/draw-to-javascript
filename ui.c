@@ -842,6 +842,15 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
     }
 }
 
+void compute_clay_slider(Context* ctx) {
+    CLAY(CLAY_ID("slider"), {
+        .layout = {
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = ease_in_out_quart_lerp(0.0f, 50.0f, ctx->ui_state.slider_lerp) ) },
+        },
+        //.backgroundColor = UI_COLOR_RED,
+    });
+}
+
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
     float t = ctx->ui_state.top_bar_lerp;
 
@@ -867,26 +876,40 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
     padding_setting.top = padding_top;
-    padding_setting.bottom = padding_bottom;
+    //padding_setting.bottom = padding_bottom;
 
-    CLAY(CLAY_ID("top_bar"), {
+    CLAY(CLAY_ID("top_bar_outer"), {
         .layout = {
-            .layoutDirection = CLAY_LEFT_TO_RIGHT,
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = top_bar_size,
-            .padding = padding_setting,
-            .childGap = 16,
-            .childAlignment = CLAY_ALIGN_X_CENTER,
         },
         .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(radius_px),
     }) {
-        compute_clay_utilities(ctx, textures, image_count);
-        compute_clay_tools(ctx, textures, image_count);
-        compute_clay_tools_settings(ctx, textures, image_count);
+        CLAY(CLAY_ID("top_bar"), {
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = top_bar_lerp_height ) },
+                .padding = padding_setting,
+                .childGap = 16,
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+            },
+        }) {
+            compute_clay_utilities(ctx, textures, image_count);
+            compute_clay_tools(ctx, textures, image_count);
+            compute_clay_tools_settings(ctx, textures, image_count);
+        }
+        if (ui_tool_has_slider[ctx->ui_state.current_tool]) {
+            compute_clay_slider(ctx);
+        }
     }
 }
 
-// because of headers
+/*
+   struct Context because of header definition etc..
+   Ngl at this point i think i actually dont need it anymore
+   but who cares
+*/
 void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images_count) {
     Clay_BeginLayout();
 
@@ -907,6 +930,7 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
     }) {
         CLAY_AUTO_ID({
             .layout = {
+                .layoutDirection = CLAY_TOP_TO_BOTTOM,
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) }, 
                 .childAlignment = CLAY_ALIGN_X_CENTER,
             },
