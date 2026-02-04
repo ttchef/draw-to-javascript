@@ -16,6 +16,7 @@
 #define UI_MAX_INPUT_CHARACTERS 100
 #define UI_DIMENSIONS_MAX_INPUT_CHARACTERS 4
 #define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
+#define UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS 8
 
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
@@ -87,6 +88,9 @@ typedef struct uiState {
     uiInputBox red_input;
     uiInputBox blue_input;
     uiInputBox green_input;
+
+    uiInputBox export_var_name_x;
+    uiInputBox export_var_name_y;
 
     /* Export Javascript Menu */
     uiFloatingMenu export_js_menu;

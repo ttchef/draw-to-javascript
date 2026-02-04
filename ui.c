@@ -238,7 +238,9 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool* sel
                 if (Clay_Hovered()) *selected = true;
                 else {
                     *selected = false;
-                    check_input_number(max_num, (char*)dynmaic_text.chars); /* Holy Bad */
+                    if (max_num) {
+                        check_input_number(max_num, (char*)dynmaic_text.chars); /* Holy Bad */
+                    }
                 }
             }
 
@@ -431,8 +433,10 @@ void compute_clay_export_js_menu(Context* ctx) {
             },            
         },
         .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
             .sizing = { CLAY_SIZING_FIXED(550), CLAY_SIZING_FIXED(650) },
             .padding = CLAY_PADDING_ALL(12),
+            .childGap = 32,
         },
         .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
@@ -449,7 +453,7 @@ void compute_clay_export_js_menu(Context* ctx) {
             .cornerRadius = CLAY_CORNER_RADIUS(12),
         }) {
             Clay_OnHover(export_js_menu_top_bar_on_hover, ctx);
-            CLAY_TEXT(CLAY_STRING("Edit Color"), CLAY_TEXT_CONFIG({
+            CLAY_TEXT(CLAY_STRING("Export to Javascript"), CLAY_TEXT_CONFIG({
                 .fontId = 1,
                 .fontSize = 40,
                 .textColor = UI_COLOR_WHITE,
@@ -472,7 +476,29 @@ void compute_clay_export_js_menu(Context* ctx) {
                 }));
             }
         }
+        
+        CLAY_AUTO_ID({
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                .padding = CLAY_PADDING_ALL(32),
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+                .childGap = 24,
+            },
+        }) {
+            Clay_String dym_text = {
+                .chars = ctx->ui_state.export_var_name_x.array,
+                .length = strlen(ctx->ui_state.export_var_name_x.array),
+                .isStaticallyAllocated = true,
+            };
 
+            clay_number_input_box(CLAY_STRING("Name Var X"), dym_text, &ctx->ui_state.export_var_name_x.input, NULL);
+
+            dym_text.chars = ctx->ui_state.export_var_name_y.array;
+            dym_text.length = strlen(ctx->ui_state.export_var_name_y.array);
+
+            clay_number_input_box(CLAY_STRING("Name Var Y"), dym_text, &ctx->ui_state.export_var_name_y.input, NULL);
+        }
     }
 }
 
@@ -1006,18 +1032,35 @@ void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t images
 
 void add_character_to_input_box(uiInputBox* box, char* max_num) {
     char c = GetKeyPressed();
-
-    if (c >= 48 && c <= 57 && box->index < box->length) {
-        if (!(c == 48 && box->index == 0)) {
+    
+    printf("%c", c);
+    if (box->type & UI_INPUT_BOX_TYPE_NUMBERS) {
+        if (c >= 48 && c <= 57 && box->index < box->length) {
+            if (!(c == 48 && box->index == 0)) {
+                box->array[box->index++] = c;
+            }
+        }
+    }
+    if (box->type & UI_INPUT_BOX_TYPE_LOWERCASE_ALPHA) {
+        if (c >= 97 && c <= 122) {
             box->array[box->index++] = c;
         }
     }
+    if (box->type & UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA) {
+        if (c >= 65 && c <= 90) {
+            box->array[box->index++] = c;
+        }
+    }
+
+    /* Universal Delte and Enter */
     else if (c == 3 && box->index > 0) {
         box->array[--box->index] = 0;
     }
     else if (c == 1) {
         box->input = false;
-        check_input_number(max_num, box->array);
+        if (max_num) {
+            check_input_number(max_num, box->array);
+        }
     }
 }
 
@@ -1086,6 +1129,16 @@ void update_ui(struct Context *ctx) {
         update_current_color(ctx);
     }
 
+    /* Input Var Name Export Js */
+    if (state->export_var_name_x.input) {
+        state->export_var_name_y.input = false;
+        add_character_to_input_box(&state->export_var_name_x, NULL);
+    }
+    else if (state->export_var_name_y.input) {
+        state->export_var_name_x.input = false;
+        add_character_to_input_box(&state->export_var_name_y, NULL);
+    }
+
     if (is_mouse_down) {
         float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
         float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
@@ -1124,5 +1177,18 @@ void init_ui(struct Context *ctx) {
     state->red_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
     state->green_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
     state->blue_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
+
+    state->export_var_name_x.length = UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS;
+    state->export_var_name_y.length = UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS;
+
+    state->width_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
+    state->height_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
+
+    state->red_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
+    state->green_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
+    state->blue_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
+
+    state->export_var_name_x.type = UI_INPUT_BOX_TYPE_ALL_ALHPA;
+    state->export_var_name_y.type = UI_INPUT_BOX_TYPE_ALL_ALHPA;
 }
 
