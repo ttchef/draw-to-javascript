@@ -125,9 +125,9 @@ void utilities_new_dropdown_item_on_hover(Clay_ElementId element_id, Clay_Pointe
     Context* ctx = (Context*)user_data;
     uiState* state = &ctx->ui_state;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        state->new_image_menu = true;
-        state->image_menu_pos.x = ctx->window_width / 2 - 400;
-        state->image_menu_pos.y = ctx->window_height / 2 - 225;
+        state->image_menu.visible = true;
+        state->image_menu.pos.x = ctx->window_width / 2 - 400;
+        state->image_menu.pos.y = ctx->window_height / 2 - 225;
     }
 }
 
@@ -195,24 +195,7 @@ void utilities_export_image_dropdown_item_on_hover(Clay_ElementId element_id, Cl
 void utilities_export_javascript_dropdown_item_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        const char* filters[] = { "*.txt", "*.js" };
-        const char* path = tinyfd_saveFileDialog(
-                "",
-                "",
-                ARRAY_LEN(filters),
-                filters,
-                "Text File");
-        if (!path) {
-            fprintf(stderr, "Failed to path from filedialog\n");
-            return;
-        }
-        FILE* file = fopen(path, "wb");
-        if (!file) {
-            fprintf(stderr, "Failed to open file: %s\n", path);
-            return;
-        }
-        image_to_javascript(ctx, file, "rx", "ry"); // TODO: make variable names customizable
-        fclose(file);
+        ctx->ui_state.export_js_menu.visible = true;
     }
 }
 
@@ -283,7 +266,7 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool* sel
 void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     uiState* state = &((Context*)user_data)->ui_state;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        state->new_image_menu = false;
+        state->image_menu.visible = false;
     }
 }
 
@@ -318,7 +301,7 @@ void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData poin
 
         ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
         ctx->mode = UI_MODE_IMAGE_EDITING;
-        ctx->ui_state.new_image_menu = false;
+        ctx->ui_state.image_menu.visible = false;
     }
 }
 
@@ -345,7 +328,7 @@ void clay_image_menu_button(Clay_String button_text, PFN_onHover on_hover_func, 
 void new_image_menu_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        ctx->ui_state.image_menu_floating = true;
+        ctx->ui_state.image_menu.floating = true;
     }
 }
 
@@ -354,8 +337,8 @@ void compute_clay_new_image_menu(Context* ctx) {
         .floating = {
             .attachTo = CLAY_ATTACH_TO_ROOT,
             .offset = {
-                .x = ctx->ui_state.image_menu_pos.x,
-                .y = ctx->ui_state.image_menu_pos.y,
+                .x = ctx->ui_state.image_menu.pos.x,
+                .y = ctx->ui_state.image_menu.pos.y,
             },
         },
         .layout = {
@@ -419,6 +402,75 @@ void compute_clay_new_image_menu(Context* ctx) {
             clay_image_menu_button(CLAY_STRING("Close"), image_menu_close_on_hover, ctx);
             clay_image_menu_button(CLAY_STRING("Create"), image_menu_create_on_hover, ctx);
         }
+    }
+}
+
+void export_js_menu_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.export_js_menu.floating = true;
+    }
+}
+
+void export_js_menu_close_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.export_js_menu.visible = false;
+    }
+}
+
+void compute_clay_export_js_menu(Context* ctx) {
+    CLAY(CLAY_ID("export_js_menu"), {
+        .floating = {
+            .attachTo = CLAY_ATTACH_TO_ROOT,
+            .offset = { 
+                ctx->ui_state.export_js_menu.pos.x,
+                ctx->ui_state.export_js_menu.pos.y,
+            },            
+        },
+        .layout = {
+            .sizing = { CLAY_SIZING_FIXED(550), CLAY_SIZING_FIXED(650) },
+            .padding = CLAY_PADDING_ALL(12),
+        },
+        .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        CLAY(CLAY_ID("export_js_menu_top_bar"), {
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.1f) },
+                .padding = { 24, 24, 12, 12 },
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+                .childGap = 12,
+            },
+            .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+        }) {
+            Clay_OnHover(export_js_menu_top_bar_on_hover, ctx);
+            CLAY_TEXT(CLAY_STRING("Edit Color"), CLAY_TEXT_CONFIG({
+                .fontId = 1,
+                .fontSize = 40,
+                .textColor = UI_COLOR_WHITE,
+            }));
+            CLAY_AUTO_ID({.layout = {.sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}});
+            CLAY(CLAY_ID("color_picker_menu_close_button"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                },
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+                .aspectRatio = 1,
+                .backgroundColor = UI_COLOR_RED,
+            }) {
+                Clay_OnHover(export_js_menu_close_button_on_hover, ctx);
+                CLAY_TEXT(CLAY_STRING("X"), CLAY_TEXT_CONFIG({
+                    .fontId = 1,
+                    .fontSize = 40,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
+        }
+
     }
 }
 
@@ -525,8 +577,13 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
         }
 
         /* New Image Menu? */
-        if (ctx->ui_state.new_image_menu) {
+        if (ctx->ui_state.image_menu.visible) {
             compute_clay_new_image_menu(ctx);
+        }
+
+        /* Export Js Menu */
+        if (ctx->ui_state.export_js_menu.visible) {
+            compute_clay_export_js_menu(ctx);
         }
     }
 }
@@ -597,14 +654,14 @@ void compute_clay_tools(Context* ctx, Texture2D* textures, size_t image_count) {
 void color_picker_close_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        ctx->ui_state.color_picker_menu = false;
+        ctx->ui_state.color_picker_menu.visible = false;
     }
 }
 
 void color_picker_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        ctx->ui_state.color_picker_menu_floating = true;
+        ctx->ui_state.color_picker_menu.floating = true;
     }
 }
 
@@ -623,7 +680,7 @@ void color_picker_select_button_on_hover(Clay_ElementId element_id, Clay_Pointer
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         update_current_color(ctx);
-        ctx->ui_state.color_picker_menu = false;
+        ctx->ui_state.color_picker_menu.visible = false;
     }
 }
 
@@ -631,7 +688,7 @@ void compute_clay_color_picker_menu(Context* ctx) {
     CLAY(CLAY_ID("color_picker_menu"), {
         .floating = {
             .attachTo = CLAY_ATTACH_TO_ROOT,
-            .offset = { ctx->ui_state.color_picker_menu_pos.x, ctx->ui_state.color_picker_menu_pos.y },
+            .offset = { ctx->ui_state.color_picker_menu.pos.x, ctx->ui_state.color_picker_menu.pos.y },
         },
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
@@ -749,9 +806,9 @@ void compute_clay_color_picker_menu(Context* ctx) {
 void tool_settings_brush_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        ctx->ui_state.color_picker_menu = true;
-        ctx->ui_state.color_picker_menu_pos.x = ctx->window_width * 0.5f - 550 * 0.5f;
-        ctx->ui_state.color_picker_menu_pos.y = ctx->window_height * 0.5f - 650 * 0.5f;
+        ctx->ui_state.color_picker_menu.visible = true;
+        ctx->ui_state.color_picker_menu.pos.x = ctx->window_width * 0.5f - 550 * 0.5f;
+        ctx->ui_state.color_picker_menu.pos.y = ctx->window_height * 0.5f - 650 * 0.5f;
     }
 }
 
@@ -802,7 +859,7 @@ void clay_tool_settings_brush(Context* ctx) {
             .aspectRatio = 1.0f,
         }) {
             Clay_OnHover(tool_settings_brush_on_hover, ctx);
-            if (ctx->ui_state.color_picker_menu) {
+            if (ctx->ui_state.color_picker_menu.visible) {
                 compute_clay_color_picker_menu(ctx);
             }
         }
@@ -843,12 +900,21 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
 }
 
 void compute_clay_slider(Context* ctx) {
-    CLAY(CLAY_ID("slider"), {
+    float max_grow = ease_in_out_quart_lerp(0.0f, 50.0f, ctx->ui_state.slider_lerp);
+    CLAY(CLAY_ID("slider_outer"), {
         .layout = {
-            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = ease_in_out_quart_lerp(0.0f, 50.0f, ctx->ui_state.slider_lerp) ) },
+            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = max_grow ) },
+            .padding = { 12, 12, 20, 20 },
         },
-        //.backgroundColor = UI_COLOR_RED,
-    });
+    }) {
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0), },
+            },
+            .backgroundColor = UI_COLOR_DARK_GRAY,
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+        });
+    }
 }
 
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
@@ -866,9 +932,6 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     float radius_px = ease_in_out_quart_lerp(12.0f, 0.0f, t);
     float padding_top = ease_in_out_quart_lerp(10.0f, 22.0f, t);
 
-    float default_padding = 10.0f;
-    float padding_bottom = ease_in_out_quart_lerp(default_padding, default_padding + slider_height_extend, ctx->ui_state.slider_lerp);
-
     Clay_Sizing top_bar_size = {
         .width = CLAY_SIZING_FIXED(width_px),
         .height = CLAY_SIZING_FIXED(height_px),
@@ -876,7 +939,6 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
     padding_setting.top = padding_top;
-    //padding_setting.bottom = padding_bottom;
 
     CLAY(CLAY_ID("top_bar_outer"), {
         .layout = {
@@ -1031,19 +1093,23 @@ void update_ui(struct Context *ctx) {
         float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
         float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
 
-        if (ctx->ui_state.image_menu_floating) {
-            ctx->ui_state.image_menu_pos.x += dx;
-            ctx->ui_state.image_menu_pos.y += dy;
+        if (ctx->ui_state.image_menu.floating) {
+            ctx->ui_state.image_menu.pos.x += dx;
+            ctx->ui_state.image_menu.pos.y += dy;
         }
-        if (ctx->ui_state.color_picker_menu_floating) {
-            ctx->ui_state.color_picker_menu_pos.x += dx;
-            ctx->ui_state.color_picker_menu_pos.y += dy;
+        if (ctx->ui_state.color_picker_menu.floating) {
+            ctx->ui_state.color_picker_menu.pos.x += dx;
+            ctx->ui_state.color_picker_menu.pos.y += dy;
+        }
+        if (ctx->ui_state.export_js_menu.floating) {
+            ctx->ui_state.export_js_menu.pos.x += dx;
+            ctx->ui_state.export_js_menu.pos.y += dy;
         }
     }
    
     if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
-        ctx->ui_state.image_menu_floating = false;
-        ctx->ui_state.color_picker_menu_floating = false;
+        ctx->ui_state.image_menu.floating = false;
+        ctx->ui_state.color_picker_menu.floating = false;
     }
 }
 

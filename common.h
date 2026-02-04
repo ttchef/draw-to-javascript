@@ -49,15 +49,19 @@ typedef struct PixelState {
     Color new_color;
 } PixelState;
 
+typedef struct uiFloatingMenu {
+    bool visible;
+    bool floating;
+    Vector2I pos;
+} uiFloatingMenu;
+
 typedef struct uiState {
     float top_bar_lerp;
     float slider_lerp;
     int32_t current_tool;
 
     /* New Image Menu */
-    bool new_image_menu;
-    bool image_menu_floating;
-    Vector2I image_menu_pos;
+    uiFloatingMenu image_menu;
     bool image_menu_width_input;
     bool image_menu_height_input;
     int32_t image_menu_width_index;
@@ -66,9 +70,7 @@ typedef struct uiState {
     char image_height[UI_MAX_INPUT_CHARACTERS + 1];
 
     /* Color Picker Menu */
-    bool color_picker_menu;
-    bool color_picker_menu_floating;
-    Vector2I color_picker_menu_pos;
+    uiFloatingMenu color_picker_menu;
     bool color_picker_menu_r_input;
     bool color_picker_menu_g_input;
     bool color_picker_menu_b_input;
@@ -78,6 +80,9 @@ typedef struct uiState {
     char color_r[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
     char color_g[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
     char color_b[UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS + 1];
+
+    /* Export Javascript Menu */
+    uiFloatingMenu export_js_menu;
 } uiState;
 
 typedef struct Context {
