@@ -615,6 +615,7 @@ static inline void update_current_color(Context* ctx) {
     ctx->brush_colors[ctx->current_brush].r = r;
     ctx->brush_colors[ctx->current_brush].g = g;
     ctx->brush_colors[ctx->current_brush].b = b;
+    ctx->draw_color = ctx->brush_colors[ctx->current_brush];
 }
 
 void color_picker_select_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
@@ -766,13 +767,15 @@ void clay_tool_settings_brush(Context* ctx) {
         CustomLayoutElement_Circle circle = {
             .lines = true,
             .fill = true,
-            .line_color = UI_COLOR_BLACK,
         };
 
         for (int32_t i = 0; i < BRUSH_COLORS_COUNT; i++) {
+            circle.line_color = i == ctx->current_brush ? UI_COLOR_WHITE : UI_COLOR_BLACK;
             circle.fill_color = RAYLIB_COLOR_TO_CLAY_COLOR(ctx->brush_colors[i]);
+
             custom_circle[i].type = CUSTOM_LAYOUT_ELEMENT_TYPE_CIRCLE;
             custom_circle[i].customData.circle = circle;
+            
             CLAY_AUTO_ID({
                 .layout = {
                     .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
