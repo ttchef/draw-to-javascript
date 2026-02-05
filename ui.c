@@ -608,6 +608,15 @@ void config_menu_close_button_on_hover(Clay_ElementId element_id, Clay_PointerDa
     }
 }
 
+void config_menu_ignore_color_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->pick_color_ignore = true;
+        ctx->enalbe_ui_click_cooldown = true;
+        ctx->ui_state.config_menu.visible = false;
+    }
+}
+
 void compute_clay_config_menu(Context* ctx) {
     CLAY(CLAY_ID("config_menu"), {
         .floating = {
@@ -671,6 +680,7 @@ void compute_clay_config_menu(Context* ctx) {
         };
 
         clay_checkbox(CLAY_STRING("Show Ignored"), &ctx->draw_ignored_pixels);
+        clay_image_menu_button(CLAY_STRING("Set Ignore"), config_menu_ignore_color_button_on_hover, ctx);
         clay_number_input_box(CLAY_STRING("Scale"), dym_string, &ctx->ui_state.scale_input.input, "100");
     }
 }
