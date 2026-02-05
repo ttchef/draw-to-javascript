@@ -304,6 +304,7 @@ void image_menu_create_on_hover(Clay_ElementId element_id, Clay_PointerData poin
         ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
         ctx->mode = UI_MODE_IMAGE_EDITING;
         ctx->ui_state.image_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
     }
 }
 
@@ -351,6 +352,7 @@ void compute_clay_new_image_menu(Context* ctx) {
         .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        if (Clay_Hovered()) ctx->above_ui = true;
         /* "Header" */
         CLAY_AUTO_ID({
             .layout = { 
@@ -418,6 +420,7 @@ void export_js_menu_close_button_on_hover(Clay_ElementId element_id, Clay_Pointe
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         ctx->ui_state.export_js_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
     }
 }
 
@@ -444,6 +447,7 @@ void export_js_menu_export_button_on_hover(Clay_ElementId element_id, Clay_Point
         image_to_javascript(ctx, file, ctx->ui_state.export_var_name_x.array, ctx->ui_state.export_var_name_y.array);
 
         fclose(file);
+        ctx->enalbe_ui_click_cooldown = true;
     }
 }
 
@@ -466,6 +470,7 @@ void compute_clay_export_js_menu(Context* ctx) {
         .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        if (Clay_Hovered()) ctx->above_ui = true;
         CLAY(CLAY_ID("export_js_menu_top_bar"), {
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -710,6 +715,7 @@ void color_picker_close_button_on_hover(Clay_ElementId element_id, Clay_PointerD
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         ctx->ui_state.color_picker_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
     }
 }
 
@@ -733,9 +739,21 @@ static inline void update_current_color(Context* ctx) {
 
 void color_picker_select_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
+    ctx->above_ui = true;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
         update_current_color(ctx);
         ctx->ui_state.color_picker_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
+    }
+}
+
+void color_picker_pick_color_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    ctx->above_ui = true;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->pick_color_draw = true;
+        ctx->ui_state.color_picker_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
     }
 }
 
@@ -753,6 +771,7 @@ void compute_clay_color_picker_menu(Context* ctx) {
         .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
         .cornerRadius = CLAY_CORNER_RADIUS(12),
     }) {
+        if (Clay_Hovered()) ctx->above_ui = true;
         CLAY(CLAY_ID("color_picker_menu_top_bar"), {
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
@@ -837,11 +856,28 @@ void compute_clay_color_picker_menu(Context* ctx) {
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.15f) },
                 .padding = CLAY_PADDING_ALL(12),
                 .childAlignment = CLAY_ALIGN_X_CENTER,
+                .childGap = 16,
             },
         }) {
+          CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                },
+                .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+            }) {
+                Clay_OnHover(color_picker_pick_color_button_on_hover, ctx);
+                CLAY_TEXT(CLAY_STRING("Pick Color"), CLAY_TEXT_CONFIG({
+                    .fontId = 1,
+                    .fontSize = 40,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
+
             CLAY_AUTO_ID({
                 .layout = {
-                    .sizing = { CLAY_SIZING_FIXED(250), CLAY_SIZING_GROW(0) },
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
                     .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
                 },
                 .backgroundColor = Clay_Hovered() ? UI_COLOR_LIGHT_GRAY : UI_COLOR_DARK_GRAY,

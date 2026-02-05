@@ -302,6 +302,7 @@ void update_image_data(Context* ctx) {
             Vector2I pos = screen_to_image_space(ctx, mouse, dst);
             int32_t index = vec_to_img(ctx, pos);
             ctx->draw_color = get_color_from_index(ctx, index);
+            ctx->brush_colors[ctx->current_brush] = ctx->draw_color;
             ctx->pick_color_draw = false;
             return;
         }
@@ -407,9 +408,6 @@ static void handle_input(Context* ctx) {
     if (CheckCollisionPointRec(GetMousePosition(), ctx->ui_state.bounding_box)) {
         ctx->above_ui = true;
     }
-    else {
-        ctx->above_ui = false;
-    }
 }
 
 int main() {
@@ -454,6 +452,8 @@ int main() {
 
     init_ui(&ctx);
 
+    float ui_click_cooldown = UI_CLICK_COOLDOWN;
+
     while (!WindowShouldClose()) {
         ctx.window_width = GetScreenWidth();
         ctx.window_height = GetScreenHeight();
@@ -461,9 +461,23 @@ int main() {
         ctx.previous_mouse_pos = ctx.current_mouse_pos;
         ctx.current_mouse_pos = GetMousePosition();
 
+        ctx.above_ui = false;
+
         handle_input(&ctx);
+        update_ui(&ctx); /* Important order of func calls here DONT CHANGE!! */
+        compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
+
+        if (ctx.enalbe_ui_click_cooldown) {
+            ctx.above_ui = true;
+            ui_click_cooldown -= GetFrameTime();
+            if (ui_click_cooldown <= 0.0f) {
+                ui_click_cooldown = UI_CLICK_COOLDOWN;
+                ctx.above_ui = false;
+                ctx.enalbe_ui_click_cooldown = false;
+            }
+        }
+
         update_image_data(&ctx);
-        update_ui(&ctx);
 
         BeginDrawing();
         ClearBackground(ctx.clear_color);
@@ -486,7 +500,6 @@ int main() {
 
         EndMode2D();
 
-        compute_clay_layout(&ctx, ui_images, ARRAY_LEN(ui_images));
         draw_ui(&ctx, fonts);
 
         EndDrawing();

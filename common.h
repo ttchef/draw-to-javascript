@@ -21,6 +21,8 @@
 #define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
 #define UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS 8
 
+#define UI_CLICK_COOLDOWN 0.4f /* In seconds */
+
 #define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
 
 enum uiMode {
@@ -116,6 +118,7 @@ typedef struct Context {
     bool debug_mode;
     bool drawing;
     bool above_ui;
+    bool enalbe_ui_click_cooldown;
     bool draw_brush_size_debug; /* Holy shit name */
     Vector2 previous_mouse_pos;
     Vector2 current_mouse_pos;
