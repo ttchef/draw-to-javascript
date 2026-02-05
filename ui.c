@@ -559,12 +559,12 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
         }) {
             clay_utilities_button(CLAY_STRING("Export"), &textures[1]);
         }
-        CLAY(CLAY_ID("utilities_save_button"), {
+        CLAY(CLAY_ID("utilities_config_button"), {
             .layout = {
                 .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
             },
         }) {
-            clay_utilities_button(CLAY_STRING("Save"), &textures[2]);
+            clay_utilities_button(CLAY_STRING("Config"), &textures[2]);
         }
 
         /* File Menu */ 

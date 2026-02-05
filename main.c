@@ -432,7 +432,7 @@ int main() {
     Texture2D ui_images[] = {
         LoadTexture("res/images/document.png"),
         LoadTexture("res/images/export.png"),
-        LoadTexture("res/images/save.png"),
+        LoadTexture("res/images/setting.png"),
         LoadTexture("res/images/brush.png"),
         LoadTexture("res/images/eraser.png"),
         LoadTexture("res/images/paint-bucket.png"),
