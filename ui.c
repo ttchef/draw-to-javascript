@@ -534,6 +534,81 @@ void compute_clay_export_js_menu(Context* ctx) {
     }
 }
 
+void config_menu_top_bar_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.config_menu.floating = true;
+    }
+}
+
+void config_menu_close_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    Context* ctx = (Context*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        ctx->ui_state.config_menu.visible = false;
+        ctx->enalbe_ui_click_cooldown = true;
+    }
+}
+
+void compute_clay_config_menu(Context* ctx) {
+    CLAY(CLAY_ID("config_menu"), {
+        .floating = {
+            .attachTo = CLAY_ATTACH_TO_ROOT,
+            .offset = { 
+                ctx->ui_state.config_menu.pos.x,
+                ctx->ui_state.config_menu.pos.y,
+            },            
+        },
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_FIXED(550), CLAY_SIZING_FIXED(650) },
+            .padding = CLAY_PADDING_ALL(12),
+            .childAlignment = CLAY_ALIGN_X_CENTER,
+            .childGap = 32,
+        },
+        .backgroundColor = UI_COLOR_DARK_DARK_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        if (Clay_Hovered()) ctx->above_ui = true;
+        CLAY(CLAY_ID("config_menu_top_bar"), {
+            .layout = {
+                .layoutDirection = CLAY_LEFT_TO_RIGHT,
+                .sizing = { CLAY_SIZING_PERCENT(1.0f), CLAY_SIZING_PERCENT(0.1f) },
+                .padding = { 24, 24, 12, 12 },
+                .childAlignment = CLAY_ALIGN_X_CENTER,
+                .childGap = 12,
+            },
+            .backgroundColor = UI_COLOR_DARK_DARK_GRAY,
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+        }) {
+            Clay_OnHover(config_menu_top_bar_on_hover, ctx);
+            CLAY_TEXT(CLAY_STRING("Configuration"), CLAY_TEXT_CONFIG({
+                .fontId = 1,
+                .fontSize = 40,
+                .textColor = UI_COLOR_WHITE,
+            }));
+            CLAY_AUTO_ID({.layout = {.sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}}});
+            CLAY(CLAY_ID("config_menu_close_button"), {
+                .layout = {
+                    .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+                },
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+                .aspectRatio = 1,
+                .backgroundColor = UI_COLOR_RED,
+            }) {
+                Clay_OnHover(config_menu_close_button_on_hover, ctx);
+                CLAY_TEXT(CLAY_STRING("X"), CLAY_TEXT_CONFIG({
+                    .fontId = 1,
+                    .fontSize = 40,
+                    .textColor = UI_COLOR_WHITE,
+                }));
+            }
+        }
+    
+
+    }
+}
+
 void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_count) {
     CLAY(CLAY_ID("utilities"), {
         .layout = {
@@ -636,6 +711,13 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
             }
         }
 
+        /* Config Menu */
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && Clay_PointerOver(Clay_GetElementId(CLAY_STRING("utilities_config_button")))) {
+            ctx->ui_state.config_menu.visible = true;
+            ctx->ui_state.config_menu.pos.x = ctx->window_width * 0.5f - 550 * 0.5f;
+            ctx->ui_state.config_menu.pos.y = ctx->window_height * 0.5f - 650 * 0.5f;
+        }
+
         /* New Image Menu? */
         if (ctx->ui_state.image_menu.visible) {
             compute_clay_new_image_menu(ctx);
@@ -644,6 +726,11 @@ void compute_clay_utilities(Context* ctx, Texture2D* textures, size_t image_coun
         /* Export Js Menu */
         if (ctx->ui_state.export_js_menu.visible) {
             compute_clay_export_js_menu(ctx);
+        }
+
+        /* Config Menu */ 
+        if (ctx->ui_state.config_menu.visible) {
+            compute_clay_config_menu(ctx);
         }
     }
 }
@@ -1189,12 +1276,17 @@ void update_ui(struct Context *ctx) {
             ctx->ui_state.export_js_menu.pos.x += dx;
             ctx->ui_state.export_js_menu.pos.y += dy;
         }
+        if (ctx->ui_state.config_menu.floating) {
+            ctx->ui_state.config_menu.pos.x += dx;
+            ctx->ui_state.config_menu.pos.y += dy;
+        }
     }
    
     if (IsMouseButtonUp(MOUSE_BUTTON_LEFT)) {
         ctx->ui_state.image_menu.floating = false;
         ctx->ui_state.color_picker_menu.floating = false;
         ctx->ui_state.export_js_menu.floating = false;
+        ctx->ui_state.config_menu.floating = false;
     }
 }
 

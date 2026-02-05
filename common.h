@@ -88,11 +88,14 @@ typedef struct uiState {
     uiInputBox blue_input;
     uiInputBox green_input;
 
-    uiInputBox export_var_name_x;
-    uiInputBox export_var_name_y;
+    /* Config Menu */ 
+    uiFloatingMenu config_menu;
 
     /* Export Javascript Menu */
     uiFloatingMenu export_js_menu;
+
+    uiInputBox export_var_name_x;
+    uiInputBox export_var_name_y;
 } uiState;
 
 typedef struct Context {
