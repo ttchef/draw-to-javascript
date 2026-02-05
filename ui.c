@@ -424,7 +424,26 @@ void export_js_menu_close_button_on_hover(Clay_ElementId element_id, Clay_Pointe
 void export_js_menu_export_button_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     Context* ctx = (Context*)user_data;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
-        /* TODO: implement.. */
+        const char* filters[] = { "*.txt", "*.js" };
+        const char* path = tinyfd_saveFileDialog(
+                "",
+                "",
+                ARRAY_LEN(filters),
+                filters,
+                "Text or Js files");
+        if (!path) {
+            fprintf(stderr, "Failed to get path from file dialog\n");
+            return;
+        }
+        FILE* file = fopen(path, "wb");
+        if (!file) {
+            fprintf(stderr, "Failed to open file: %s\n", path);
+            return;
+        }
+
+        image_to_javascript(ctx, file, ctx->ui_state.export_var_name_x.array, ctx->ui_state.export_var_name_y.array);
+
+        fclose(file);
     }
 }
 

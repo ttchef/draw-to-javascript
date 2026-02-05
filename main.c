@@ -139,7 +139,7 @@ void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
             int32_t pos_x = x - ctx->new_image_width / 2;
             int32_t pos_y = -(y - ctx->new_image_height / 2);
             if (ctx->export_x_mirrored) pos_x *= -1;
-            fprintf(fd, "Canvas.rect(%s%+.2f, %s%+.2f, %.2f, %.2f, {fill:\"#%02X\"}),\n", name_x,
+            fprintf(fd, "Canvas.rect(%s%+.2f, %s%+.2f, %.2f, %.2f, {fill:\"#%06X\"}),\n", name_x,
                     pos_x * ctx->export_scale, name_y, pos_y * ctx->export_scale,
                     1.5f * ctx->export_scale, 1.5f * ctx->export_scale, color);
         }
