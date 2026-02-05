@@ -6,8 +6,8 @@
 #include <raymath.h>
 #include <stdlib.h>
 
-//#define STB_IMAGE_IMPLEMENTATION
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "darray.h"
@@ -21,9 +21,7 @@
 
 #define MAX_JAVASCRIPT_LINE 256
 
-typedef struct {
-    char* name_x;
-    char* name_y;
+typedef struct jsLine {
     double offset_x;
     double offset_y;
     Color color;
@@ -38,7 +36,7 @@ static inline uint8_t hex2_to_u8(char* hex) {
 }
 
 /* Without errro checking and documentation xD */
-static void parse_javascript_line(Context* ctx, char* line, int32_t line_index, MemArena* arena, jsLine** lines) {
+static void parse_javascript_line(Context* ctx, char* line, int32_t line_index, jsLine** lines) {
     char* open_paren = strchr(line, '(');
     char* comma_pos_x = strchr(line, ',');
     char* plus_sign_x = strchr(line, '+');
@@ -100,17 +98,8 @@ static void parse_javascript_line(Context* ctx, char* line, int32_t line_index, 
     curr_pos += 2;
     color.b = hex2_to_u8(curr_pos);
 
-    /* Push Names */
-    char* name_x = arenaPush(arena, var_name_x_len + 1, false);
-    memcpy(name_x, var_name_x, var_name_x_len);
-
-    char* name_y = arenaPush(arena, var_name_y_len + 1, false);
-    memcpy(name_y, var_name_y, var_name_y_len);
-
     /* Creation of Structure */
     jsLine data = {
-        .name_x = name_x,
-        .name_y = name_y,
         .offset_x = offset_x,
         .offset_y = offset_y,
         .color = color,
@@ -195,7 +184,6 @@ void load_from_javascript(Context* ctx) {
     char* delim = "\n";
     char* token = strtok(buffer, delim);
 
-    MemArena* js_data = arenaCreate(MiB(100), KiB(5));
     jsLine* lines = darrayCreate(jsLine);
 
     int32_t line_index = 0;
@@ -203,7 +191,7 @@ void load_from_javascript(Context* ctx) {
         char line[MAX_JAVASCRIPT_LINE];
         strncpy(line, token, MAX_JAVASCRIPT_LINE - 1);
         line[MAX_JAVASCRIPT_LINE - 1] = '\0';
-        parse_javascript_line(ctx, line, line_index, js_data, &lines);
+        parse_javascript_line(ctx, line, line_index, &lines);
 
         token = strtok(NULL, delim);
         line_index++;
@@ -243,7 +231,6 @@ void load_from_javascript(Context* ctx) {
     ctx->mode = UI_MODE_IMAGE_EDITING;
 
     darrayDestroy(lines);
-    arenaDestroy(js_data);
 }
 
 static inline bool compare_colors(Color a, Color b) {
@@ -472,6 +459,67 @@ void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
     }
 }
 
+void bucket_fill(Context* ctx, Vector2I start) {
+    int32_t w = ctx->new_image_width;
+    int32_t h = ctx->new_image_height;
+
+    if (compare_colors(ctx->draw_color, ctx->ignore_color))
+        return;
+
+    Vector2I *stack = malloc(sizeof(Vector2I) * w * h);
+    int32_t top = 0;
+
+    if (start.x < 0 || start.y < 0 || start.x >= w || start.y >= h) {
+        free(stack);
+        return;
+    }
+
+    int32_t idx = vec_to_img(ctx, start);
+    Color c = get_color_from_index(ctx, idx);
+
+    ctx->image_data[idx + 0] = ctx->draw_color.r;
+    ctx->image_data[idx + 1] = ctx->draw_color.g;
+    ctx->image_data[idx + 2] = ctx->draw_color.b;
+    ctx->image_data[idx + 3] = ctx->draw_color.a;
+
+    stack[top++] = start;
+
+    while (top > 0) {
+        Vector2I pos = stack[--top];
+
+        Vector2I neighbors[4] = {
+            { pos.x - 1, pos.y },
+            { pos.x + 1, pos.y },
+            { pos.x, pos.y - 1 },
+            { pos.x, pos.y + 1 }
+        };
+
+        for (int i = 0; i < 4; i++) {
+            Vector2I n = neighbors[i];
+
+            if (n.x < 0 || n.y < 0 || n.x >= w || n.y >= h)
+                continue;
+
+            int32_t nidx = vec_to_img(ctx, n);
+            Color nc = get_color_from_index(ctx, nidx);
+
+            if (!compare_colors(nc, ctx->ignore_color) && compare_colors(nc, ctx->draw_color))
+                continue;
+
+            ctx->image_data[nidx + 0] = ctx->draw_color.r;
+            ctx->image_data[nidx + 1] = ctx->draw_color.g;
+            ctx->image_data[nidx + 2] = ctx->draw_color.b;
+            ctx->image_data[nidx + 3] = ctx->draw_color.a;
+
+            stack[top++] = n;
+        }
+    }
+
+    free(stack);
+}
+
+
+
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (ctx->above_ui) return; 
@@ -513,39 +561,46 @@ void update_image_data(Context* ctx) {
             if (ctx->save_states_index >= UNDO_COUNT) ctx->save_states_index = 0; 
         }
 
-        float radius = ctx->brush_size;
-        float radius_squared = radius * radius;
+        if (ctx->ui_state.current_tool == UI_TOOL_BUCKET_FILL) {
+            Vector2 curr_word = GetScreenToWorld2D(ctx->current_mouse_pos, ctx->camera);
+            Vector2I pos_image = screen_to_image_space(ctx, curr_word, dst);
+            bucket_fill(ctx, pos_image);
+        }
+        else {
+            float radius = ctx->brush_size;
+            float radius_squared = radius * radius;
 
-        float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
-        float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
+            float dx = ctx->current_mouse_pos.x - ctx->previous_mouse_pos.x;
+            float dy = ctx->current_mouse_pos.y - ctx->previous_mouse_pos.y;
 
-        float screen_dist_squared = dx * dx + dy * dy;
-        float radius_scale = Clamp(ctx->camera.zoom / 64.0f, 0.1f, 0.5f);
+            float screen_dist_squared = dx * dx + dy * dy;
+            float radius_scale = Clamp(ctx->camera.zoom / 64.0f, 0.1f, 0.5f);
 
-        if (screen_dist_squared >= radius_squared * radius_scale) {
-            /* Need for filling in */
+            if (screen_dist_squared >= radius_squared * radius_scale) {
+                /* Need for filling in */
 
-            int32_t lerp_count = screen_dist_squared / (radius_squared * radius_scale);
-            if (lerp_count > 0) {
-                Vector2 prev_world = GetScreenToWorld2D(ctx->previous_mouse_pos, ctx->camera);
-                Vector2 curr_world = GetScreenToWorld2D(ctx->current_mouse_pos, ctx->camera);
+                int32_t lerp_count = screen_dist_squared / (radius_squared * radius_scale);
+                if (lerp_count > 0) {
+                    Vector2 prev_world = GetScreenToWorld2D(ctx->previous_mouse_pos, ctx->camera);
+                    Vector2 curr_world = GetScreenToWorld2D(ctx->current_mouse_pos, ctx->camera);
 
-                float lerp_t = 0.0f;
-                
-                for (int32_t i = 0; i <= lerp_count; i++) {
-                    lerp_t = (float)i / lerp_count;
-                    Vector2 pos_world = Vector2Lerp(prev_world, curr_world, lerp_t);
-                    draw_circle(ctx, pos_world, dst);
-                 
-                    if (first_time) {
-                        /* Save to save state */
-                        
+                    float lerp_t = 0.0f;
+
+                    for (int32_t i = 0; i <= lerp_count; i++) {
+                        lerp_t = (float)i / lerp_count;
+                        Vector2 pos_world = Vector2Lerp(prev_world, curr_world, lerp_t);
+                        draw_circle(ctx, pos_world, dst);
+
+                        if (first_time) {
+                            /* Save to save state */
+
+                        }
                     }
                 }
             }
-        }
 
-        draw_circle(ctx, mouse, dst);
+            draw_circle(ctx, mouse, dst);
+        }
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }

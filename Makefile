@@ -7,7 +7,7 @@ LDFLAGS =
 
 EXE_NAME = 
 
-OS ?= windows
+OS ?= linux
 ifeq ($(OS),linux)
 	CC := gcc 
 	CFLAGS += 
