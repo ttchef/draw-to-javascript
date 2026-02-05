@@ -44,12 +44,6 @@ enum uiInputBoxType {
     UI_INPUT_BOX_TYPE_ALL_ALHPA = (3 << 1),
 };
 
-const bool ui_tool_has_slider[UI_TOOL_COUNT] = {
-    true, 
-    true,
-    false,
-};
-
 typedef struct Vector2I {
     int32_t x;
     int32_t y;
@@ -78,7 +72,6 @@ typedef struct uiInputBox {
 
 typedef struct uiState {
     float top_bar_lerp;
-    float slider_lerp;
     int32_t current_tool;
 
     /* New Image Menu */

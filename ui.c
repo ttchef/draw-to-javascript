@@ -935,24 +935,6 @@ void compute_clay_tools_settings(Context* ctx, Texture2D* textures, size_t image
     }
 }
 
-void compute_clay_slider(Context* ctx) {
-    float max_grow = ease_in_out_quart_lerp(0.0f, 25.0f, ctx->ui_state.slider_lerp);
-    CLAY(CLAY_ID("slider_outer"), {
-        .layout = {
-            .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = max_grow ) },
-            .padding = { 16, 16, 0, 0 },
-        },
-    }) {
-        CLAY_AUTO_ID({
-            .layout = {
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_PERCENT(0.4f), },
-            },
-            .backgroundColor = UI_COLOR_DARK_GRAY,
-            .cornerRadius = CLAY_CORNER_RADIUS(12),
-        });
-    }
-}
-
 void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) {
     float t = ctx->ui_state.top_bar_lerp;
 
@@ -960,10 +942,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
 
     float base_height = 100.0f;
     float extend_height = base_height + 12.0f;
-    float top_bar_lerp_height = ease_in_out_quart_lerp(base_height, extend_height, t);
-
-    float slider_height_extend = 25.0f;
-    float height_px = ease_in_out_quart_lerp(top_bar_lerp_height, top_bar_lerp_height + slider_height_extend, ctx->ui_state.slider_lerp);
+    float height_px = ease_in_out_quart_lerp(base_height, extend_height, t);
 
     float radius_px = ease_in_out_quart_lerp(12.0f, 0.0f, t);
     float padding_top = ease_in_out_quart_lerp(10.0f, 22.0f, t);
@@ -987,7 +966,7 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
         CLAY(CLAY_ID("top_bar"), {
             .layout = {
                 .layoutDirection = CLAY_LEFT_TO_RIGHT,
-                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = top_bar_lerp_height ) },
+                .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW( .max = height_px ) },
                 .padding = padding_setting,
                 .childGap = 16,
                 .childAlignment = CLAY_ALIGN_X_CENTER,
@@ -996,9 +975,6 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
             compute_clay_utilities(ctx, textures, image_count);
             compute_clay_tools(ctx, textures, image_count);
             compute_clay_tools_settings(ctx, textures, image_count);
-        }
-        if (ui_tool_has_slider[ctx->ui_state.current_tool]) {
-            compute_clay_slider(ctx);
         }
     }
 }
@@ -1093,17 +1069,6 @@ void update_ui(struct Context *ctx) {
     /* Clamp */;
     if (ctx->ui_state.top_bar_lerp > 1.0f) ctx->ui_state.top_bar_lerp = 1.0f;
     if (ctx->ui_state.top_bar_lerp < 0.0f) ctx->ui_state.top_bar_lerp = 0.0f;
-
-    /* Slider Animation */
-    if (ui_tool_has_slider[ctx->ui_state.current_tool]) {
-        ctx->ui_state.slider_lerp += delta_slider_anim;
-    }
-    else {
-        ctx->ui_state.slider_lerp -= delta_slider_anim;
-    }
-
-    if (ctx->ui_state.slider_lerp > 1.0f) ctx->ui_state.slider_lerp = 1.0f;
-    if (ctx->ui_state.slider_lerp < 0.0f) ctx->ui_state.slider_lerp = 0.0f;
 
     /* Input Image Menu */
     uiState* state = &ctx->ui_state;
