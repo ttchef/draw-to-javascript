@@ -352,8 +352,6 @@ static Rectangle get_image_dst(Context* ctx) {
 
     return dst;
 }
-
-
 static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
     float u = (vec.x - dst.x) / dst.width;
     float v = (vec.y - dst.y) / dst.height;
