@@ -73,6 +73,7 @@ typedef struct uiInputBox {
 typedef struct uiState {
     float top_bar_lerp;
     int32_t current_tool;
+    Rectangle bounding_box;
 
     /* New Image Menu */
     uiFloatingMenu image_menu;
@@ -114,6 +115,8 @@ typedef struct Context {
     bool draw_ignored_pixels;
     bool debug_mode;
     bool drawing;
+    bool above_ui;
+    bool draw_brush_size_debug; /* Holy shit name */
     Vector2 previous_mouse_pos;
     Vector2 current_mouse_pos;
     Camera2D camera;

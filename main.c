@@ -4,6 +4,7 @@
 
 #include <raylib.h>
 #include <raymath.h>
+#include <stdlib.h>
 
 //#define STB_IMAGE_IMPLEMENTATION
 //#define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -284,6 +285,8 @@ void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
 
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
+    if (ctx->above_ui) return; 
+
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         bool first_time = !ctx->drawing;
         Vector2 mouse_screen = GetMousePosition();
@@ -375,16 +378,37 @@ static void handle_input(Context* ctx) {
     // Zoom
     float wheel = GetMouseWheelMove();
     if (wheel != 0) {
-        Vector2 mouse_world_pos = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
-        ctx->camera.offset = GetMousePosition();
-        ctx->camera.target = mouse_world_pos;
+        if (IsKeyDown(KEY_LEFT_SHIFT)) {
+            ctx->brush_size += wheel;
+            ctx->brush_size = Clamp(ctx->brush_size, 0.5f, 50.0f);
+        }
+        else {
+            Vector2 mouse_world_pos = GetScreenToWorld2D(GetMousePosition(), ctx->camera);
+            ctx->camera.offset = GetMousePosition();
+            ctx->camera.target = mouse_world_pos;
 
-        float scale = wheel * 0.2f;
-        ctx->camera.zoom = Clamp(expf(logf(ctx->camera.zoom) + scale), 0.125f, 64.0f);
+            float scale = wheel * 0.2f;
+            ctx->camera.zoom = Clamp(expf(logf(ctx->camera.zoom) + scale), 0.125f, 64.0f);
+        }
     }
 
     if (IsKeyPressed(KEY_D)) {
         ctx->debug_mode = !ctx->debug_mode;
+    }
+
+    if (IsKeyDown(KEY_LEFT_SHIFT)) {
+        ctx->draw_brush_size_debug = true;
+    }
+    if (IsKeyUp(KEY_LEFT_SHIFT)) {
+        ctx->draw_brush_size_debug = false;
+    }
+
+    /* Disable/Enable cursor */ 
+    if (CheckCollisionPointRec(GetMousePosition(), ctx->ui_state.bounding_box)) {
+        ctx->above_ui = true;
+    }
+    else {
+        ctx->above_ui = false;
     }
 }
 
@@ -445,9 +469,19 @@ int main() {
         ClearBackground(ctx.clear_color);
         BeginMode2D(ctx.camera);
 
-        DrawRectangle(0, 0, ctx.window_width, ctx.window_height, BLACK); // TMP
-
         draw_image(&ctx);
+    
+        if (ctx.draw_brush_size_debug) {
+            Vector2 world_pos = GetScreenToWorld2D(GetMousePosition(), ctx.camera);
+            Rectangle dst = get_image_dst(&ctx);
+
+            float world_per_pixel_x = dst.width / ctx.new_image_width;
+            float world_per_pixel_y = dst.height / ctx.new_image_height;
+            float world_radius = ctx.brush_size * world_per_pixel_x;
+
+            DrawCircleLinesV(world_pos, world_radius, WHITE);
+        }
+
         DrawFPS(10, 10);
 
         EndMode2D();

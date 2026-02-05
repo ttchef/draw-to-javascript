@@ -955,6 +955,12 @@ void compute_clay_topbar(Context* ctx, Texture2D* textures, size_t image_count) 
     Clay_Padding padding_setting = CLAY_PADDING_ALL(10);
     padding_setting.top = padding_top;
 
+    /* Store in bounding box for main.c */ 
+    ctx->ui_state.bounding_box.x = ctx->window_width * 0.5f - width_px * 0.5f;
+    ctx->ui_state.bounding_box.y = 0; /* Not really the case but we dont count the padding */ 
+    ctx->ui_state.bounding_box.width = width_px;
+    ctx->ui_state.bounding_box.height = height_px;
+
     CLAY(CLAY_ID("top_bar_outer"), {
         .layout = {
             .layoutDirection = CLAY_TOP_TO_BOTTOM,
