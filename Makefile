@@ -21,7 +21,7 @@ else
 endif
 
 all:
-	$(CC) $(CFLAGS) main.c darray.c $(TINY_FILE_DIALOGS_PATH)/tinyfiledialogs.c -o $(EXE_NAME) $(LDFLAGS)
+	$(CC) $(CFLAGS) main.c darray.c arena_allocator.c $(TINY_FILE_DIALOGS_PATH)/tinyfiledialogs.c -o $(EXE_NAME) $(LDFLAGS)
 
 clean:
 	rm -rf main main.exe

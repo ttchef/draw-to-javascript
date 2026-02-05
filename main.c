@@ -13,9 +13,156 @@
 #include "darray.h"
 
 #include "common.h"
+#include "arena_allocator.h"
+
 #include "ui.c"
 
 #define COLOR_PICKER_RESOLUTION 400
+
+#define MAX_JAVASCRIPT_LINE 256
+
+typedef struct {
+    char* name_x;
+    char* name_y;
+    double offset_x;
+    double offset_y;
+    Color color;
+} jsLine; 
+
+static inline uint8_t hex2_to_u8(char* hex) {
+    char buffer[3];
+    buffer[0] = hex[0];
+    buffer[1] = hex[1];
+    buffer[2] = '\0';
+    return strtol(buffer, NULL, 16);
+}
+
+/* Without errro checking and documentation xD */
+static void parse_javascript_line(Context* ctx, char* line, int32_t line_index, MemArena* arena, jsLine** lines) {
+    char* open_paren = strchr(line, '(');
+    char* comma_pos_x = strchr(line, ',');
+    char* plus_sign_x = strchr(line, '+');
+    char* minus_sign_x = strchr(line, '-');
+
+    bool plus_sign = false;
+    if (plus_sign_x && plus_sign_x < comma_pos_x) plus_sign = true;
+
+    char* sign_pos = plus_sign ? plus_sign_x : minus_sign_x;
+
+    char* var_name_x = open_paren + 1;
+    size_t var_name_x_len = sign_pos - var_name_x;
+
+    size_t offset_x_digits = comma_pos_x - sign_pos;
+    char offset_x_str[offset_x_digits + 1];
+    memcpy(offset_x_str, sign_pos, offset_x_digits);
+    offset_x_str[offset_x_digits] = '\0';
+
+    double offset_x = atof(offset_x_str);
+
+    char* plus_sign_y = strchr(comma_pos_x, '+');
+    char* minus_sign_y = strchr(comma_pos_x, '-');
+
+    plus_sign = false;
+    if (plus_sign_y) plus_sign = true;
+
+    sign_pos = plus_sign ? plus_sign_y : minus_sign_y;
+
+    char* var_name_y = comma_pos_x + 2;
+    size_t var_name_y_len = sign_pos - var_name_y;
+
+    char* comma_pos_y = strchr(comma_pos_x + 1, ',');
+
+    size_t offset_y_digits = comma_pos_y - sign_pos;
+    char offset_y_str[offset_y_digits + 1];
+    memcpy(offset_y_str, sign_pos, offset_y_digits);
+    offset_y_str[offset_y_digits] = '\0';
+
+    double offset_y = atof(offset_y_str);
+
+    /* Width is same as height so only width needed */
+    char* comma_width = strchr(comma_pos_y + 1, ',');
+    char* width_pos = comma_pos_y + 2;
+
+    size_t width_digits = comma_width - width_pos;
+    char width_str[width_digits + 1];
+    memcpy(width_str, width_pos, width_digits);
+    width_str[width_digits] = '\0';
+
+    double width = atof(width_str);
+
+    char* hashtag_pos = strchr(comma_width, '#');
+    char* curr_pos = hashtag_pos + 1;
+    
+    Color color = { .a = 255 };
+    color.r = hex2_to_u8(curr_pos);
+    curr_pos += 2;
+    color.g = hex2_to_u8(curr_pos);
+    curr_pos += 2;
+    color.b = hex2_to_u8(curr_pos);
+
+    /* Push Names */
+    char* name_x = arenaPush(arena, var_name_x_len + 1, false);
+    memcpy(name_x, var_name_x, var_name_x_len);
+
+    char* name_y = arenaPush(arena, var_name_y_len + 1, false);
+    memcpy(name_y, var_name_y, var_name_y_len);
+
+    /* Creation of Structure */
+    jsLine data = {
+        .name_x = name_x,
+        .name_y = name_y,
+        .offset_x = offset_x,
+        .offset_y = offset_y,
+        .color = color,
+    };
+
+    darrayPush(*lines, data);
+}
+
+static Vector2I get_image_dim_from_js(jsLine* array) {
+    double max_x = 0.0;
+    double max_y = 0.0;
+    for (int32_t i = 0; i < darrayLength(array); i++) {
+        jsLine* element = &array[i];
+        if (fabs(element->offset_x) > max_x) max_x = fabs(element->offset_x);
+        if (fabs(element->offset_y) > max_y) max_y = fabs(element->offset_y);
+    }
+
+    max_x = ceilf(max_x);
+    max_y = ceilf(max_y);
+    return (Vector2I){max_x * 2, max_y * 2 };
+}
+
+static void write_data_to_img(Context* ctx, jsLine* data)
+{
+    float center_x = ctx->new_image_width  * 0.5f;
+    float center_y = ctx->new_image_height * 0.5f;
+
+    int32_t offset = ctx->new_image_width % 2 == 0 ? 1 : 0;
+
+    for (int32_t i = 0; i < darrayLength(data); i++)
+    {
+        float px = center_x - (float)data[i].offset_x;
+        float py = center_y - (float)data[i].offset_y;
+
+        int32_t img_pos_x = (int32_t)floorf(px) - offset;
+        int32_t img_pos_y = (int32_t)floorf(py);
+
+
+        if (img_pos_x < 0 || img_pos_x >= ctx->new_image_width ||
+            img_pos_y < 0 || img_pos_y >= ctx->new_image_height)
+            continue;
+
+        int32_t index =
+            (img_pos_y * ctx->new_image_width + img_pos_x) * 4;
+
+        ctx->image_data[index + 0] = data[i].color.r;
+        ctx->image_data[index + 1] = data[i].color.g;
+        ctx->image_data[index + 2] = data[i].color.b;
+        ctx->image_data[index + 3] = 255;
+    }
+}
+
 
 void load_from_javascript(Context* ctx) {
     const char* filters[] = { "*.txt" };
@@ -32,6 +179,10 @@ void load_from_javascript(Context* ctx) {
     }
 
     FILE* file = fopen(path, "rb");
+    if (!file) {
+        fprintf(stderr, "failed to open file: %s\n", path);
+        return;
+    }
 
     fseek(file, 0, SEEK_END);
     int64_t size = ftell(file);
@@ -41,18 +192,58 @@ void load_from_javascript(Context* ctx) {
     fread(buffer, size, 1, file);
     buffer[size] = '\0';
 
-    char* delim = ",({";
+    char* delim = "\n";
     char* token = strtok(buffer, delim);
+
+    MemArena* js_data = arenaCreate(MiB(100), KiB(5));
+    jsLine* lines = darrayCreate(jsLine);
+
+    int32_t line_index = 0;
     while (token != NULL) {
-        if (token[0] == 'C') {
-            token = strtok(NULL, delim);
-            continue;
-        }
-        printf("%s\n", token);
+        char line[MAX_JAVASCRIPT_LINE];
+        strncpy(line, token, MAX_JAVASCRIPT_LINE - 1);
+        line[MAX_JAVASCRIPT_LINE - 1] = '\0';
+        parse_javascript_line(ctx, line, line_index, js_data, &lines);
+
         token = strtok(NULL, delim);
+        line_index++;
     }
 
     fclose(file);
+
+    Vector2I dim = get_image_dim_from_js(lines);
+
+    ctx->new_image_width = dim.x;
+    ctx->new_image_height = dim.y;
+
+    ctx->image_data = malloc(dim.x * dim.y * 4);
+    if (!ctx->image_data) {
+        fprintf(stderr, "failed to allocate image\n");
+        exit(1);
+    }
+
+    int32_t total = ctx->new_image_width * ctx->new_image_height;
+    for (int32_t i = 0; i < total; i++) {
+        ctx->image_data[i * 4] = 0;
+        ctx->image_data[i * 4 + 1] = 0;
+        ctx->image_data[i * 4 + 2] = 0;
+        ctx->image_data[i * 4 + 3] = 255;
+    }
+
+    write_data_to_img(ctx, lines);
+
+    Image img = GenImageColor(ctx->new_image_width, ctx->new_image_height, BLACK);
+    ctx->loaded_tex = LoadTextureFromImage(img);
+    UnloadImage(img);
+
+    SetTextureFilter(ctx->loaded_tex, TEXTURE_FILTER_POINT);
+    UpdateTexture(ctx->loaded_tex, ctx->image_data);
+
+    ctx->loaded_ratio = (float)ctx->loaded_tex.width / (float)ctx->loaded_tex.height;
+    ctx->mode = UI_MODE_IMAGE_EDITING;
+
+    darrayDestroy(lines);
+    arenaDestroy(js_data);
 }
 
 static inline bool compare_colors(Color a, Color b) {

@@ -504,6 +504,7 @@ void export_js_menu_export_button_on_hover(Clay_ElementId element_id, Clay_Point
         }
 
         ctx->export_scale = atoi(ctx->ui_state.scale_input.array);
+        if (ctx->export_scale == 0) ctx->export_scale = 1.0f;
         image_to_javascript(ctx, file, ctx->ui_state.export_var_name_x.array, ctx->ui_state.export_var_name_y.array);
 
         fclose(file);
