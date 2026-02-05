@@ -46,10 +46,10 @@ enum uiInputBoxType {
     UI_INPUT_BOX_TYPE_ALL_ALHPA = (3 << 1),
 };
 
-typedef struct Vector2I {
-    int32_t x;
-    int32_t y;
-} Vector2I;
+enum SafeStateType {
+    SAFE_STATE_TYPE_BRUSH,
+    SAFE_STATE_TYPE_BUCKET_FILL,
+};
 
 typedef struct PixelState {
     int32_t index;
@@ -57,6 +57,19 @@ typedef struct PixelState {
     Color old_color;
     Color new_color;
 } PixelState;
+
+typedef struct SafeState {
+    enum SafeStateType type;
+    union {
+        PixelState* pixels;
+        
+    } data;
+} SafeState;
+
+typedef struct Vector2I {
+    int32_t x;
+    int32_t y;
+} Vector2I;
 
 typedef struct uiFloatingMenu {
     bool visible;
@@ -128,7 +141,7 @@ typedef struct Context {
     Vector2 current_mouse_pos;
     Camera2D camera;
     float export_scale;
-    PixelState* save_states[UNDO_COUNT];
+    SafeState save_states[UNDO_COUNT];
     int32_t save_states_index;
     uiState ui_state;
     Texture2D rainbow_circle;

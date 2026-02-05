@@ -297,20 +297,11 @@ void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y) {
         for (int32_t x = 0; x < ctx->new_image_width; x++) {
             int32_t index = (y * ctx->new_image_width + x) * 4;
             
-            uint8_t r = ctx->image_data[index];
-            uint8_t g = ctx->image_data[index + 1];
-            uint8_t b = ctx->image_data[index + 2];
-            uint8_t a = ctx->image_data[index + 3];
-            Color cmp_color = (Color){
-                .r = r,
-                .b = b,
-                .g = g,
-                .a = a,
-            };
+            Color cmp_color = get_color_from_index(ctx, index);
             uint32_t color = 0;
-            color |= b;
-            color |= g << 8;
-            color |= r << 16;
+            color |= cmp_color.b;
+            color |= cmp_color.g << 8;
+            color |= cmp_color.r << 16;
 
             if (compare_colors(cmp_color, ctx->ignore_color)) continue;
 
@@ -339,6 +330,7 @@ static Rectangle get_image_dst(Context* ctx) {
 
     return dst;
 }
+
 static inline Vector2I screen_to_image_space(Context* ctx, Vector2 vec, Rectangle dst) {
     float u = (vec.x - dst.x) / dst.width;
     float v = (vec.y - dst.y) / dst.height;
@@ -519,7 +511,6 @@ void bucket_fill(Context* ctx, Vector2I start) {
 }
 
 
-
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (ctx->above_ui) return; 
@@ -554,11 +545,6 @@ void update_image_data(Context* ctx) {
 
         if (first_time) {
             /* New Save state */
-            if (ctx->save_states[ctx->save_states_index]) {
-                darrayDestroy(ctx->save_states[ctx->save_states_index]);
-            }
-            ctx->save_states[ctx->save_states_index++] = darrayCreate(PixelState);
-            if (ctx->save_states_index >= UNDO_COUNT) ctx->save_states_index = 0; 
         }
 
         if (ctx->ui_state.current_tool == UI_TOOL_BUCKET_FILL) {
@@ -753,6 +739,7 @@ int main() {
     UnloadTexture(ctx.loaded_tex);
 
     Clay_Raylib_Close();
+
     return 0;
 }
 
