@@ -90,6 +90,7 @@ typedef struct uiState {
 
     /* Config Menu */ 
     uiFloatingMenu config_menu;
+    uiInputBox scale_input;
 
     /* Export Javascript Menu */
     uiFloatingMenu export_js_menu;

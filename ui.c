@@ -265,6 +265,65 @@ void clay_number_input_box(Clay_String text, Clay_String dynmaic_text, bool* sel
     }
 }
 
+void checkbox_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
+    bool* checked = (bool*)user_data;
+    if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
+        *checked = !*checked;
+    }
+}
+
+void clay_checkbox(Clay_String text, bool* checked) {
+    CustomLayoutElement_RectangleLines custom_rect = {
+        .borderColor = UI_COLOR_WHITE,
+    };
+
+    input_box_color.type = CUSTOM_LAYOUT_ELEMENT_TYPE_RECTANGLE_LINES;
+    input_box_color.customData.rect = custom_rect;
+
+    CLAY_AUTO_ID({
+        .layout = {
+            .layoutDirection = CLAY_TOP_TO_BOTTOM,
+            .sizing = { CLAY_SIZING_FIT(0), CLAY_SIZING_FIT(0) },
+            .padding = CLAY_PADDING_ALL(12),
+            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+            .childGap = 6,
+        },
+        .backgroundColor = UI_COLOR_DARK_GRAY,
+        .cornerRadius = CLAY_CORNER_RADIUS(12),
+    }) {
+        CLAY_AUTO_ID({
+            .layout = {
+                .sizing = { CLAY_SIZING_FIXED(75), CLAY_SIZING_FIXED(75) },
+            },
+            .cornerRadius = CLAY_CORNER_RADIUS(12),
+            .custom = {
+                .customData = &input_box_color,
+            },
+        }) {
+            Clay_Color background_color;
+            if (*checked) background_color = UI_COLOR_LIGHT_BLUE;
+            else if (Clay_Hovered()) background_color = UI_COLOR_LIGHT_GRAY;
+            else background_color = UI_COLOR_DARK_GRAY;
+
+            Clay_OnHover(checkbox_on_hover, checked);
+
+            CLAY_AUTO_ID({
+                .layout = {
+                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) },
+                    .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+                },
+                .backgroundColor = background_color,
+                .cornerRadius = CLAY_CORNER_RADIUS(12),
+            });
+        }
+        CLAY_TEXT(text, CLAY_TEXT_CONFIG({
+            .fontId = 0,
+            .fontSize = 20,
+            .textColor = UI_COLOR_WHITE,
+        }));
+    }
+}
+
 void image_menu_close_on_hover(Clay_ElementId element_id, Clay_PointerData pointer_info, void* user_data) {
     uiState* state = &((Context*)user_data)->ui_state;
     if (pointer_info.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME) {
@@ -604,8 +663,15 @@ void compute_clay_config_menu(Context* ctx) {
                 }));
             }
         }
-    
+ 
+        Clay_String dym_string = {
+            .chars = ctx->ui_state.scale_input.array,
+            .length = strlen(ctx->ui_state.scale_input.array),
+            .isStaticallyAllocated = true,
+        };
 
+        clay_checkbox(CLAY_STRING("Show Ignored"), &ctx->draw_ignored_pixels);
+        clay_number_input_box(CLAY_STRING("Scale"), dym_string, &ctx->ui_state.scale_input.input, "100");
     }
 }
 
@@ -1251,13 +1317,18 @@ void update_ui(struct Context *ctx) {
     }
 
     /* Input Var Name Export Js */
-    if (state->export_var_name_x.input) {
+    if (state->export_var_name_x.input) {;
         state->export_var_name_y.input = false;
         add_character_to_input_box(&state->export_var_name_x, NULL);
     }
     else if (state->export_var_name_y.input) {
         state->export_var_name_x.input = false;
         add_character_to_input_box(&state->export_var_name_y, NULL);
+    }
+
+    /* Scale Input Box */ 
+    if (state->scale_input.input) {
+        add_character_to_input_box(&state->scale_input, "100");
     }
 
     if (is_mouse_down) {
@@ -1308,6 +1379,8 @@ void init_ui(struct Context *ctx) {
     state->export_var_name_x.length = UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS;
     state->export_var_name_y.length = UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS;
 
+    state->scale_input.length = UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS;
+
     state->width_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
     state->height_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
 
@@ -1317,5 +1390,7 @@ void init_ui(struct Context *ctx) {
 
     state->export_var_name_x.type = UI_INPUT_BOX_TYPE_ALL_ALHPA;
     state->export_var_name_y.type = UI_INPUT_BOX_TYPE_ALL_ALHPA;
+
+    state->scale_input.type = UI_INPUT_BOX_TYPE_NUMBERS;
 }
 
