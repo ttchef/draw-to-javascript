@@ -3,4 +3,5 @@ main.exe
 main
 .cache/
 *.jpg
+*.json
 

@@ -1,0 +1,165 @@
+
+#ifndef COMMON_H
+#define COMMON_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <math.h>
+
+#include "stb_image.h"
+#include "stb_image_write.h"
+
+#include <raylib.h>
+
+#define UNDO_COUNT 10
+#define BRUSH_COLORS_COUNT 2
+
+#define UI_MAX_INPUT_CHARACTERS 100
+#define UI_DIMENSIONS_MAX_INPUT_CHARACTERS 4
+#define UI_COLOR_PICKER_MENU_MAX_INPUT_CHARS 3
+#define UI_EXPORT_VAR_NAME_MAX_INPUT_CHARS 8
+
+#define UI_CLICK_COOLDOWN 0.4f /* In seconds */
+
+#define ARRAY_LEN(arr) (sizeof((arr)) / sizeof((arr)[0]))
+
+enum uiMode {
+    UI_MODE_FILE_SELECTION,
+    UI_MODE_IMAGE_EDITING,
+    UI_MODE_EXPORT,
+};
+
+enum uiTool {
+    UI_TOOL_BRUSH,
+    UI_TOOL_ERASER,
+    UI_TOOL_BUCKET_FILL,
+    // TODO: UI_TOOL_COLOR_PICKER (maybe)
+    UI_TOOL_COUNT,
+};
+
+enum uiInputBoxType {
+    UI_INPUT_BOX_TYPE_NUMBERS = (1 << 0),
+    UI_INPUT_BOX_TYPE_LOWERCASE_ALPHA = (1 << 1),
+    UI_INPUT_BOX_TYPE_UPPERCASE_ALHPA = (1 << 2),
+    UI_INPUT_BOX_TYPE_ALL_ALHPA = (3 << 1),
+};
+
+typedef struct Vector2I {
+    int32_t x;
+    int32_t y;
+} Vector2I;
+
+typedef struct PixelState {
+    int32_t index;
+    float radius;
+    Color old_color;
+    Color new_color;
+} PixelState;
+
+typedef struct uiFloatingMenu {
+    bool visible;
+    bool floating;
+    Vector2I pos;
+} uiFloatingMenu;
+
+typedef struct uiInputBox {
+    enum uiInputBoxType type;
+    bool input;
+    char array[UI_MAX_INPUT_CHARACTERS];
+    int32_t index;
+    size_t length;
+} uiInputBox;
+
+typedef struct uiState {
+    float top_bar_lerp;
+    int32_t current_tool;
+    Rectangle bounding_box;
+
+    /* New Image Menu */
+    uiFloatingMenu image_menu;
+    uiInputBox width_input;
+    uiInputBox height_input;
+
+    /* Color Picker Menu */
+    uiFloatingMenu color_picker_menu;
+    uiInputBox red_input;
+    uiInputBox blue_input;
+    uiInputBox green_input;
+
+    /* Config Menu */ 
+    uiFloatingMenu config_menu;
+    uiInputBox scale_input;
+
+    /* Export Javascript Menu */
+    uiFloatingMenu export_js_menu;
+
+    uiInputBox export_var_name_x;
+    uiInputBox export_var_name_y;
+} uiState;
+
+typedef struct Context {
+    int32_t window_width;
+    int32_t window_height;
+    int32_t new_image_width;
+    int32_t new_image_height;
+    uint8_t* image_data;
+    Texture2D loaded_tex;
+    float loaded_ratio;
+    enum uiMode mode;
+    Color clear_color;
+    Color draw_color;
+    Color ignore_color;
+    Color brush_colors[BRUSH_COLORS_COUNT];
+    int32_t current_brush;
+    float brush_size;
+    bool export_x_mirrored;
+    bool export_one_line;
+    bool pick_color_draw;
+    bool pick_color_ignore;
+    bool draw_ignored_pixels;
+    bool debug_mode;
+    bool drawing;
+    bool above_ui;
+    bool enalbe_ui_click_cooldown;
+    bool draw_brush_size_debug; /* Holy shit name */
+    Vector2 previous_mouse_pos;
+    Vector2 current_mouse_pos;
+    Camera2D camera;
+    float export_scale;
+    PixelState* save_states[UNDO_COUNT];
+    int32_t save_states_index;
+    uiState ui_state;
+    Texture2D rainbow_circle;
+} Context;
+
+void image_to_javascript(Context* ctx, FILE* fd, char* name_x, char* name_y);
+void load_from_javascript(Context* ctx);
+
+void init_ui(struct Context* ctx);
+void update_ui(struct Context* ctx);
+void compute_clay_layout(struct Context* ctx, Texture2D* textures, size_t image_count);
+void draw_ui(struct Context* ctx, Font* fonts);
+
+static inline float lerp(float a, float b, float t) {
+    return b * t + a * (1.0f - t);
+}
+
+static inline float ease_out_cubic(float t) {
+    return 1.0f - powf(1.0f - t, 3.0f);
+}
+
+static inline float ease_out_cubic_lerp(float a, float b, float t) {
+    return lerp(a, b, ease_out_cubic(t));
+}
+
+static inline float ease_in_out_quart(float t) {
+    return t < 0.5f ? 8 * t * t * t * t : 1.0f - powf(-2.0f * t + 2, 4.0f) * 0.5f;
+}
+
+static inline float ease_in_out_quart_lerp(float a, float b, float t) {
+    return lerp(a, b, ease_in_out_quart(t));
+}
+
+#endif // COMMON_H
