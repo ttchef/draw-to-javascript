@@ -6,8 +6,8 @@
 #include <raymath.h>
 #include <stdlib.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "libtinyfiledialogs/tinyfiledialogs.h"
 #include "darray.h"
@@ -428,7 +428,7 @@ void draw_image(Context* ctx) {
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
 
-void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
+void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst, Color c) {
     float radius = ctx->brush_size;
     float radius_squared = radius * radius;
 
@@ -442,9 +442,9 @@ void draw_circle(Context* ctx, Vector2 pos_world, Rectangle dst) {
             if (i * i + j * j <= radius_squared) {
                 int32_t index = vec_to_img(ctx, pos);
                 if (index == -1) continue;
-                ctx->image_data[index] = ctx->draw_color.r;
-                ctx->image_data[index + 1] = ctx->draw_color.g;
-                ctx->image_data[index + 2] = ctx->draw_color.b;
+                ctx->image_data[index] = c.r;
+                ctx->image_data[index + 1] = c.g;
+                ctx->image_data[index + 2] = c.b;
                 ctx->image_data[index + 3] = 255;
             }
         }
@@ -545,6 +545,11 @@ void update_image_data(Context* ctx) {
 
         if (first_time) {
             /* New Save state */
+            if (ctx->save_states_index == UNDO_COUNT) ctx->save_states_index = 0;
+            ctx->save_states[ctx->save_states_index].type = SAVE_STATE_TYPE_BRUSH;
+            ctx->save_states[ctx->save_states_index++].data.brush.pixels = darrayCreate(PixelState);
+
+            printf("Saved\n");
         }
 
         if (ctx->ui_state.current_tool == UI_TOOL_BUCKET_FILL) {
@@ -564,7 +569,6 @@ void update_image_data(Context* ctx) {
 
             if (screen_dist_squared >= radius_squared * radius_scale) {
                 /* Need for filling in */
-
                 int32_t lerp_count = screen_dist_squared / (radius_squared * radius_scale);
                 if (lerp_count > 0) {
                     Vector2 prev_world = GetScreenToWorld2D(ctx->previous_mouse_pos, ctx->camera);
@@ -575,21 +579,87 @@ void update_image_data(Context* ctx) {
                     for (int32_t i = 0; i <= lerp_count; i++) {
                         lerp_t = (float)i / lerp_count;
                         Vector2 pos_world = Vector2Lerp(prev_world, curr_world, lerp_t);
-                        draw_circle(ctx, pos_world, dst);
 
-                        if (first_time) {
-                            /* Save to save state */
-
+                        /* Save to save state */
+                        int32_t idx = ctx->save_states_index - 1;
+                        if (idx < 0) {
+                            fprintf(stderr, "Save state error idx\n");
+                            exit(1);
                         }
+
+                        Vector2I pos_img = screen_to_image_space(ctx, pos_world, dst);
+                        int32_t idx_img = vec_to_img(ctx, pos_img);
+                        Color c = get_color_from_index(ctx, idx);
+
+                        PixelState state = {
+                            .pos_world = pos_world,
+                            .radius = radius,
+                            .color = c,
+                        };
+                        darrayPush(ctx->save_states[idx].data.brush.pixels, state);
+
+                        draw_circle(ctx, pos_world, dst, ctx->draw_color);
                     }
                 }
             }
 
-            draw_circle(ctx, mouse, dst);
+                /* Save to save state */
+                int32_t idx = ctx->save_states_index - 1;
+                if (idx < 0) {
+                    fprintf(stderr, "Save state error idx\n");
+                    exit(1);
+                }
+
+                Vector2I pos_img = screen_to_image_space(ctx, mouse, dst);
+                int32_t idx_img = vec_to_img(ctx, pos_img);
+                Color c = get_color_from_index(ctx, idx);
+
+                PixelState state = {
+                    .pos_world = mouse,
+                    .radius = radius,
+                    .color = c,
+                };
+                darrayPush(ctx->save_states[idx].data.brush.pixels, state);
+
+
+            draw_circle(ctx, mouse, dst, ctx->draw_color);
         }
 
         UpdateTexture(ctx->loaded_tex, ctx->image_data);
     }
+}
+
+static void undo(Context* ctx) {
+    int32_t idx = ctx->save_states_index - 1;
+    if (idx < 0) {
+        fprintf(stderr, "cant undo no save state\n");
+        return;
+    }
+    
+    switch (ctx->save_states->type) {
+        case SAVE_STATE_TYPE_BRUSH: {
+            PixelState* pixels = ctx->save_states[idx].data.brush.pixels;
+            Rectangle dst = get_image_dst(ctx);
+
+            for (int32_t i = 0; i < darrayLength(pixels); i++) {
+                PixelState* p = &pixels[i];
+                draw_circle(ctx, p->pos_world, dst, p->color);
+            }
+            darrayDestroy(pixels);
+        };
+        default:
+            break;
+    }
+
+    ctx->save_states_index--;
+    if (ctx->save_states_index < 0) ctx->save_states_index = UNDO_COUNT - 1;
+
+
+    UpdateTexture(ctx->loaded_tex, ctx->image_data);
+}
+
+static void redo(Context* ctx) {
+
 }
 
 static void handle_input(Context* ctx) {
@@ -634,7 +704,17 @@ static void handle_input(Context* ctx) {
         ctx->draw_brush_size_debug = false;
     }
 
-    /* Disable/Enable cursor */ 
+    bool ctrl = IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL);
+
+    /* Undo/Redo */
+    if (ctrl && IsKeyPressed(KEY_Y)) { // German Keyboard layout
+            printf("Yoo\n");
+            undo(ctx);
+    }
+    else if (ctrl && IsKeyPressed(KEY_R)) {
+            redo(ctx);
+    }
+
     if (CheckCollisionPointRec(GetMousePosition(), ctx->ui_state.bounding_box)) {
         ctx->above_ui = true;
     }

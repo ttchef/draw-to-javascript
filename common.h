@@ -46,25 +46,29 @@ enum uiInputBoxType {
     UI_INPUT_BOX_TYPE_ALL_ALHPA = (3 << 1),
 };
 
-enum SafeStateType {
-    SAFE_STATE_TYPE_BRUSH,
-    SAFE_STATE_TYPE_BUCKET_FILL,
+enum SaveStateType {
+    SAVE_STATE_TYPE_BRUSH,
+    SAVE_STATE_TYPE_BUCKET_FILL,
 };
 
 typedef struct PixelState {
-    int32_t index;
+    Vector2 pos_world;
     float radius;
-    Color old_color;
-    Color new_color;
+    Color color;
 } PixelState;
 
+/* Not sure if i want to use c11 with anonymis stuff */
 typedef struct SafeState {
-    enum SafeStateType type;
+    enum SaveStateType type;
     union {
-        PixelState* pixels;
-        
+        struct {
+            PixelState* pixels;
+        } brush;
+        struct {
+
+        } bucket_fill;
     } data;
-} SafeState;
+} SaveState;
 
 typedef struct Vector2I {
     int32_t x;
@@ -141,7 +145,7 @@ typedef struct Context {
     Vector2 current_mouse_pos;
     Camera2D camera;
     float export_scale;
-    SafeState save_states[UNDO_COUNT];
+    SaveState save_states[UNDO_COUNT];
     int32_t save_states_index;
     uiState ui_state;
     Texture2D rainbow_circle;
