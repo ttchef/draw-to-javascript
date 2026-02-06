@@ -51,15 +51,20 @@ enum SaveStateType {
     SAVE_STATE_TYPE_BUCKET_FILL,
 };
 
+typedef struct Vector2I {
+    int32_t x;
+    int32_t y;
+} Vector2I;
+
 typedef struct PixelState {
-    Vector2 pos_world;
-    float radius;
+    int32_t index;
     Color color;
 } PixelState;
 
 /* Not sure if i want to use c11 with anonymis stuff */
 typedef struct SafeState {
     enum SaveStateType type;
+    bool valid;
     union {
         struct {
             PixelState* pixels;
@@ -69,11 +74,6 @@ typedef struct SafeState {
         } bucket_fill;
     } data;
 } SaveState;
-
-typedef struct Vector2I {
-    int32_t x;
-    int32_t y;
-} Vector2I;
 
 typedef struct uiFloatingMenu {
     bool visible;
