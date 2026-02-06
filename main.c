@@ -659,7 +659,11 @@ void update_image_data(Context* ctx) {
 static void undo(Context* ctx) {
     int32_t idx = ctx->save_states_index - 1;
     if (idx < 0) {
-        fprintf(stderr, "cant undo no save state\n");
+        idx = UNDO_COUNT - 1;
+    }
+
+    if (!ctx->save_states[idx].valid) {
+        fprintf(stderr, "No valid safe state anymore\n");
         return;
     }
     
