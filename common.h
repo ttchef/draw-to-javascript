@@ -145,8 +145,13 @@ typedef struct Context {
     Vector2 current_mouse_pos;
     Camera2D camera;
     float export_scale;
+
+    /* Save State */
     SaveState save_states[UNDO_COUNT];
     int32_t save_states_index;
+    uint32_t* pixel_stamp; 
+    uint32_t current_stamp;
+
     uiState ui_state;
     Texture2D rainbow_circle;
 } Context;

@@ -436,17 +436,13 @@ void draw_image(Context* ctx) {
     DrawRectangleLines(0, 0, dst.width, dst.height, RAYWHITE);
 }
 
-static bool pixel_saved(Context* ctx, int32_t other_idx) {
-    int32_t idx = ctx->save_states_index - 1;
-    if (idx < 0) return false;
+static bool pixel_saved(Context* ctx, int32_t index) {
+    int32_t pixel_index = index / 4;
 
-    PixelState* pixels = ctx->save_states[idx].data.brush.pixels;
-    Rectangle dst = get_image_dst(ctx);
-
-    for (int i = 0; i < darrayLength(pixels); i++) {
-        if (other_idx == pixels[i].index)
-            return true;
+    if (ctx->pixel_stamp[pixel_index] == ctx->current_stamp) {
+        return true;
     }
+    ctx->pixel_stamp[pixel_index] = ctx->current_stamp;
     return false;
 }
 
@@ -570,6 +566,7 @@ static void new_save_state(Context* ctx, enum SaveStateType type) {
     }
 
     ctx->save_states_index++;
+    ctx->current_stamp++;
     printf("Saved: %d\n", ctx->save_states_index - 1);
 }
 
@@ -577,6 +574,15 @@ static void new_save_state(Context* ctx, enum SaveStateType type) {
 void update_image_data(Context* ctx) {
     if (ctx->mode != UI_MODE_IMAGE_EDITING) return;
     if (ctx->above_ui) return; 
+
+    if (!ctx->pixel_stamp) {
+        ctx->pixel_stamp = calloc(ctx->new_image_width * ctx->new_image_height, sizeof(uint32_t));
+        if (!ctx->pixel_stamp) {
+            fprintf(stderr, "Failed to allocate stamp buffer\n");
+            return;
+        }
+        ctx->current_stamp = 1;
+    }
 
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         bool first_time = !ctx->drawing;
