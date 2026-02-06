@@ -360,6 +360,7 @@ static inline int32_t vec_to_img(Context* ctx, Vector2I vec) {
     return (vec.y * ctx->new_image_width + vec.x) * 4;
 }
 
+/* TODO: make performant */
 static void draw_ignored_pixels(Context* ctx, Rectangle dst, float dst_pixel_width, float dst_pixel_height) {
     for (int32_t y = 0; y < ctx->new_image_width; y++) {
         for (int32_t x = 0; x < ctx->new_image_height; x++) {
@@ -386,7 +387,18 @@ static void draw_debug_mode(Context* ctx, Rectangle dst, float dst_pixel_width, 
     Font font = GetFontDefault();
     float font_size = Clamp(fminf(dst_pixel_width, dst_pixel_height) * 0.5f, 0.6f, 10.0f);
 
-    for (int32_t x = 0; x < ctx->new_image_width; x++) {
+    /* Potential Scaling based on Size */
+    /* 
+    float world_per_pixel_x = dst.width / ctx->new_image_width;
+    float world_per_pixel_y = dst.height / ctx->new_image_height;
+    float detail = Clamp((world_per_pixel_x * 1.0f / ctx->camera.zoom) * 2, 1.0f, 100.0f);
+    int32_t detail_int = roundf(detail);
+    printf("Line Detai: %.2f\n", detail);
+    */ 
+
+    int32_t detail_int = 1;
+
+    for (int32_t x = 0; x < ctx->new_image_width; x += detail_int) {
         float px = dst.x + x * dst_pixel_width;
         DrawLine(px, dst.y, px, dst.y + dst.height, RAYWHITE);
 
@@ -398,7 +410,7 @@ static void draw_debug_mode(Context* ctx, Rectangle dst, float dst_pixel_width, 
 
     int32_t font_width = MeasureText(TextFormat("%d", ctx->new_image_width), font_size);
 
-    for (int32_t y = 0; y < ctx->new_image_height; y++) {
+    for (int32_t y = 0; y < ctx->new_image_height; y += detail_int) {
         float py = dst.y + y * dst_pixel_height;
         DrawLine(dst.x, py, dst.x + dst.width, py, RAYWHITE);
 
@@ -750,7 +762,7 @@ static void handle_input(Context* ctx) {
     }
 }
 
-int main() {
+int32_t main() {
     Context ctx = { .window_width = 1200, .window_height = 800, .ui_state = {0} };
 
     uint64_t total_mem = Clay_MinMemorySize();
@@ -769,7 +781,7 @@ int main() {
     };
     Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
-    Texture2D ui_images[] = {
+    Texture2D ui_images[] ={
         LoadTexture("res/images/document.png"),
         LoadTexture("res/images/export.png"),
         LoadTexture("res/images/setting.png"),
